@@ -1,0 +1,11 @@
+config:
+  aws:region: eu-central-1
+  cloud:provider: aws
+  discord_emoji_bot:discord_application_id:
+    secure: AAABAAoqjqMceCO9rfXLwi9irQ18DPLAEimkrhEgJNe/UUAcmqhqnFojfDVvwTPCHfA=
+  discord_emoji_bot:discord_bot_token:
+    secure: AAABAJTFS54YHyF2RZwYntEG60jaK4RwXaUJya2783x/ZcXge0VSn+qJ00kkxb2CyKqpKB35sh+C+Hkfo8jQ/XJpSuHySwF7ciAcEzsVb/6uhoQNPMySJ6dyQA==
+  discord_emoji_bot:discord_public_key:
+    secure: AAABAO9BSc2fzBeDZSkmsJlYViLwybxAGZL29UISuJ6Wj3Lhl8FFzDv3ZCKFWH0n1HV2Rc0HpzJRtfRTPLE5xse8x+G/2+NvRuIFa2sTiRZn2bNc5h9aTCevCeKpIaca
+  discord_emoji_bot:thundra_api_key:
+    secure: AAABAFH3jArgvV0OSiC+jmud2SU9hi+tcmPJSKgsIidBn7DSZN1m9dn1CW0CGvoAaFn75AMVUFD7b/ttwMM0rseBruU=
