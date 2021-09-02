@@ -2,11 +2,7 @@ import * as pulumi from "@pulumi/pulumi";
 import * as aws from "@pulumi/aws";
 import * as awsx from "@pulumi/awsx";
 import * as cloud from "@pulumi/cloud"
-
-import * as express from "express"
-import { Request, Response, NextFunction } from "express"
-import { Interaction, InteractionType } from "./bot/types/discord"
-import { DiscordSecurityMiddleware, ErrorMiddleware } from "./bot/middleware"
+import { appWrapper } from "./bot";
 
 const cfg = new pulumi.Config()
 
@@ -30,41 +26,60 @@ const thundraApiKey = new aws.ssm.Parameter("thundra-api-key", {
   value: cfg.requireSecret("thundra_api_key")
 })
 
-const botApi = new cloud.HttpServer("bot-api", () => {
-  const app = express()
-
-  // Register middleware
-  app.use(express.json())
-  app.use(DiscordSecurityMiddleware(discordApplicationId.value.get()))
-
-  app.post("/", (req: Request<{}, {}, Interaction>, res: Response, next: NextFunction) => {
-    try {
-      const interaction = req.body
-
-      // Handle different interaction types
-      switch(interaction.type) {
-        case InteractionType.PING:
-          console.debug("Received PING interaction")
-
-          // PONG back PING interactions
-          res.json({
-            type: InteractionType.PING
-          })
-
-          break;
-        default:
-          res.status(400)
-            .json("Unknown interaction")
-          break;
-      }
-    } catch(error) {
-      next(error)
-    }
-  })
-
-  app.use(ErrorMiddleware) // Catch errors
-
-  return app
+/*const lambdaRole = new aws.iam.Role("lambdaRole", {
+  assumeRolePolicy: {
+    Version: "2012-10-17",
+    Statement: [{
+      Action: "sts:AssumeRole",
+      Principal: {
+        Service: "lambda.amazonaws.com"
+      },
+      Effect: "Allow",
+      Sid: ""
+    }]
+  }
 })
 
-export const url = botApi
+new aws.iam.RolePolicyAttachment("botApiFuncRoleAttachment", {
+  role: lambdaRole,
+  policyArn: aws.iam.ManagedPolicies.AWSLambdaExecute
+})
+
+const botApiFunc = new aws.lambda.Function("botApiFunc", {
+  code: new pulumi.asset.AssetArchive({
+    ".": new pulumi.asset.FileArchive("./bin/bot"),
+    "./node_modules": new pulumi.asset.FileArchive("./node_modules")
+  }),
+  runtime: "nodejs14.x",
+  handler: "index.handler",
+  role: lambdaRole.arn,
+  environment: {
+    variables: {
+      DISCORD_APPLICATION_ID: discordApplicationId.id,
+      DISCORD_BOT_TOKEN: discordBotToken.value,
+      DISCORD_PUBLIC_KEY: JSON.stringify({ id: discordPublicKey.id, name: discordPublicKey.name }),
+      THUNDRA_API_KEY: thundraApiKey.value
+    }
+  }
+})
+
+const ssmPermission = new aws.lambda.Permission("ssmPermission", {
+  action: "lambda:InvokeFunction",
+  function: botApiFunc.name,
+  principal: "ssm.amazonaws.com",
+  sourceArn: discordPublicKey.arn
+})
+
+const botApiGateway = new awsx.apigateway.API("botApiGateway", {
+  routes: [{
+    path: "/",
+    method: "ANY",
+    eventHandler: botApiFunc
+  }]
+})*/
+
+const botApiGateway = new cloud.HttpServer("botApi", () => appWrapper({
+  discordPublicKey: discordPublicKey.value.get()
+}))
+
+export const endpointUrl = botApiGateway.url
