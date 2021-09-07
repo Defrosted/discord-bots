@@ -1,5 +1,4 @@
 import { NextFunction, Request, Response } from "express"
-import * as express from "express"
 import nacl from "tweetnacl"
 import { AppResources } from "../types/AppResources"
 import { BadRequestError, UnauthorizedError } from "../types/HttpErrorTypes"
@@ -10,7 +9,7 @@ export const DiscordSecurityMiddleware = (req: Request, res: Response, next: Nex
     if (!discordPublicKey)
       throw new Error("Discord information invalid, public key missing")
 
-    let rawBody = ""
+    /*let rawBody = ""
     req.on("data", (chunk) => {
       rawBody += chunk
     })
@@ -27,7 +26,7 @@ export const DiscordSecurityMiddleware = (req: Request, res: Response, next: Nex
       //console.debug("Body", req.body)
 
       if(!signature || !timestamp) {
-        throw new BadRequestError("Invalid request headers")
+        return next(new BadRequestError("Invalid request headers"))
       }
 
       const isVerified = nacl.sign.detached.verify(
@@ -37,9 +36,32 @@ export const DiscordSecurityMiddleware = (req: Request, res: Response, next: Nex
       )
       
       if(!isVerified) {
-        throw new UnauthorizedError("Invalid request signature")
+        return next(new UnauthorizedError("Invalid request signature"))
       }
-    })
+    })*/
+
+    const signature = req.get("X-Signature-Ed25519")
+    const timestamp = req.get("X-Signature-Timestamp")
+
+    console.debug("Signature", signature)
+    console.debug("Timestamp", timestamp)
+    console.debug("Public key", discordPublicKey)
+    console.debug("Body", req.body)
+    console.debug("String body", JSON.stringify(req.body))
+
+    if(!signature || !timestamp) {
+      throw new BadRequestError("Invalid request headers")
+    }
+
+    const isVerified = nacl.sign.detached.verify(
+      Buffer.from(timestamp + JSON.stringify(req.body)),
+      Buffer.from(signature, 'hex'),
+      Buffer.from(discordPublicKey, 'hex')
+    )
+    
+    if(!isVerified) {
+      throw new UnauthorizedError("Invalid request signature")
+    }
   } catch(error) {
     next(error)
   }

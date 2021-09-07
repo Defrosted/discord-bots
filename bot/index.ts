@@ -9,11 +9,12 @@ export const appWrapper = (resources: AppResources) => {
 
   app.set('resources', resources)
 
-  app.use(DiscordSecurityMiddleware)
   app.use(express.json())
+  app.use(DiscordSecurityMiddleware)
 
   app.post("/", (req: Request<{}, {}, Interaction>, res: Response, next: NextFunction) => {
     try {
+      console.debug("Received interaction", req.body)
       const interaction = req.body
 
       // Handle different interaction types

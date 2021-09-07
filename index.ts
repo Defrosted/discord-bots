@@ -2,6 +2,8 @@ import * as pulumi from "@pulumi/pulumi";
 import * as aws from "@pulumi/aws";
 import * as awsx from "@pulumi/awsx";
 import * as cloud from "@pulumi/cloud"
+import serverlessExpress from "@vendia/serverless-express"
+import awsLambda from "aws-lambda"
 import { appWrapper } from "./bot";
 
 const cfg = new pulumi.Config()
@@ -78,8 +80,24 @@ const botApiGateway = new awsx.apigateway.API("botApiGateway", {
   }]
 })*/
 
-const botApiGateway = new cloud.HttpServer("botApi", () => appWrapper({
+const botApiGateway = new awsx.apigateway.API("botApi", {
+  routes: [{
+    path: "/",
+    method: "ANY",
+    eventHandler: (event, context, callback) => {
+      const server = serverlessExpress({ 
+        app: appWrapper({
+          discordPublicKey: discordPublicKey.value.get()
+        }) 
+      })
+
+      return server(event, context as unknown as awsLambda.Context, callback)
+    }
+  }]
+})
+
+/*const botApiGateway = new cloud.HttpServer("botApi", () => appWrapper({
   discordPublicKey: discordPublicKey.value.get()
-}))
+}))*/
 
 export const endpointUrl = botApiGateway.url
