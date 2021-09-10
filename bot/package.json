@@ -1,8 +1,7 @@
 {
     "name": "discord_emoji_bot",
     "scripts": {
-        "build": "rm -rf bin && tsc",
-        "deploy": "npm run build && pulumi up",
+        "build": "rm -rf bin/code && cp package*.json bin/dependencies && cd bin/dependencies && npm i --production && cd ../.. && tsc",
         "lint": "eslint . --ext .ts",
         "test": "npx jest"
     },
@@ -19,11 +18,6 @@
         "typescript": "^4.4.2"
     },
     "dependencies": {
-        "@pulumi/aws": "^4.0.0",
-        "@pulumi/awsx": "^0.30.0",
-        "@pulumi/cloud": "^0.30.1",
-        "@pulumi/cloud-aws": "^0.30.1",
-        "@pulumi/pulumi": "^3.0.0",
         "@thundra/core": "^2.12.18",
         "aws-sdk": "^2.986.0",
         "tweetnacl": "^1.0.3"

@@ -12,6 +12,16 @@ export const handler = async (
   callback: APIGatewayProxyCallbackV2
 ): Promise<void> => {
   try {
+    // Parse body
+    const rawBody = event.isBase64Encoded 
+      ? Buffer.from(event.body ?? "", "base64").toString()
+      : event.body ?? undefined;
+    const body = JSON.parse(rawBody ?? "") as Interaction;
+
+    console.debug("Body", body);
+    console.debug("Raw body", event.body);
+    console.debug("Headers", event.headers);
+
     // Verify Discord signature
     const { BOT_DISCORD_PUBLIC_KEY } = process.env;
     const publicKey = await new SSMManager()
@@ -19,18 +29,15 @@ export const handler = async (
     if(!publicKey)
       throw new Error("Failed to retrieve Discord public key");
 
-    const signature = event.headers["X-Signature-Ed25519"];
-    const timestamp = event.headers["X-Signature-Timestamp"];
-
-    console.debug("Body", event.body);
+    const signature = event.headers["X-Signature-Ed25519"] ?? event.headers["x-signature-ed25519"];
+    const timestamp = event.headers["X-Signature-Timestamp"] ?? event.headers["x-signature-timestamp"];
 
     const signatureVerifier = new DiscordSignatureVerifier(publicKey);
-    signatureVerifier.verify(signature, timestamp, event.body ?? undefined);
+    // Need to restringify the body as the raw body has been manipulated by the API Gateway
+    signatureVerifier.verify(signature, timestamp, JSON.stringify(body));
 
     // Handle interaction
-    const response = InteractionRouter.routeInteraction(
-      JSON.parse(event.body ?? "") as Interaction
-    );
+    const response = InteractionRouter.routeInteraction(body);
 
     // Send response
     callback(null, {

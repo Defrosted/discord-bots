@@ -40,8 +40,8 @@ const lambdaRole = new aws.iam.Role("botApiFuncRole", {
 
 const botApiFunc = new aws.lambda.Function("botApiFunc", {
   code: new pulumi.asset.AssetArchive({
-    ".": new pulumi.asset.FileArchive("./bin/bot"),
-    "./node_modules": new pulumi.asset.FileArchive("./node_modules")
+    ".": new pulumi.asset.FileArchive("../bot/bin/code"),
+    "./node_modules": new pulumi.asset.FileArchive("../bot/bin/dependencies/node_modules")
   }),
   runtime: "nodejs14.x",
   handler: "index.handler",
@@ -59,11 +59,38 @@ const botApiFunc = new aws.lambda.Function("botApiFunc", {
   parent: lambdaRole
 });
 
-new aws.lambda.Permission("botApiFuncPermission-SSM", {
+new aws.lambda.Permission("botApiFuncPermission-SSM-DiscordPublicKey", {
   action: "lambda:InvokeFunction",
   function: botApiFunc.name,
   principal: "ssm.amazonaws.com",
   sourceArn: discordPublicKey.arn
+}, {
+  parent: botApiFunc
+});
+
+new aws.lambda.Permission("botApiFuncPermission-SSM-DiscordApplicationId", {
+  action: "lambda:InvokeFunction",
+  function: botApiFunc.name,
+  principal: "ssm.amazonaws.com",
+  sourceArn: discordApplicationId.arn
+}, {
+  parent: botApiFunc
+});
+
+new aws.lambda.Permission("botApiFuncPermission-SSM-DiscordBotToken", {
+  action: "lambda:InvokeFunction",
+  function: botApiFunc.name,
+  principal: "ssm.amazonaws.com",
+  sourceArn: discordBotToken.arn
+}, {
+  parent: botApiFunc
+});
+
+new aws.lambda.Permission("botApiFuncPermission-SSM-ThundraAPIKey", {
+  action: "lambda:InvokeFunction",
+  function: botApiFunc.name,
+  principal: "ssm.amazonaws.com",
+  sourceArn: thundraApiKey.arn
 }, {
   parent: botApiFunc
 });
@@ -92,6 +119,13 @@ new aws.iam.RolePolicyAttachment("botApiFuncRoleAttachment-CloudWatch-EventsFull
 new aws.iam.RolePolicyAttachment("botApiFuncRoleAttachment-XRay-WriteOnlyAccess", {
   role: lambdaRole,
   policyArn: aws.iam.ManagedPolicies.AWSXrayWriteOnlyAccess
+}, {
+  parent: lambdaRole
+});
+
+new aws.iam.RolePolicyAttachment("botApiFuncRoleAttachment-SSM-ReadOnlyAccess", {
+  role: lambdaRole,
+  policyArn: aws.iam.ManagedPolicies.AmazonSSMReadOnlyAccess
 }, {
   parent: lambdaRole
 });

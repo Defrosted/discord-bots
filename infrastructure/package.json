@@ -1,0 +1,27 @@
+{
+    "name": "discord_emoji_bot",
+    "scripts": {
+        "build": "cd ../bot && npm run build && cd ../infrastructure",
+        "deploy": "npm run build && pulumi up",
+        "lint": "eslint . --ext .ts",
+        "test": "npx jest"
+    },
+    "devDependencies": {
+        "@types/jest": "^27.0.1",
+        "@types/node": "^10.17.60",
+        "@typescript-eslint/eslint-plugin": "^4.31.0",
+        "@typescript-eslint/parser": "^4.31.0",
+        "dotenv": "^10.0.0",
+        "eslint": "^7.32.0",
+        "jest": "^27.1.1",
+        "ts-jest": "^27.0.5",
+        "typescript": "^4.4.2"
+    },
+    "dependencies": {
+        "@pulumi/aws": "^4.0.0",
+        "@pulumi/awsx": "^0.30.0",
+        "@pulumi/cloud": "^0.30.1",
+        "@pulumi/cloud-aws": "^0.30.1",
+        "@pulumi/pulumi": "^3.0.0"
+    }
+}

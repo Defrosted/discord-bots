@@ -6,4 +6,7 @@ module.exports = {
   setupFiles: [
     "dotenv/config"
   ],
+  testPathIgnorePatterns: [
+    "bin/*"
+  ]
 };

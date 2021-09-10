@@ -15,8 +15,5 @@
     },
     "files": [
         "index.ts"
-    ],
-    "include": [
-        "bot/*"
     ]
 }

@@ -6,12 +6,12 @@ describe("DiscordSignatureVerifier", () => {
     throw new Error("Valid Discord public key is required for tests");
 
   describe(".verify()", () => {
-    const validSignature = "cc672f51a61ccc4389120c71f139cef67adda2ac9d65b50a9efc60fe283c5bdc62a8b0022fb4644adcb376767631271780dfe04fb66576f7c28aa34dcd648008";
-    const validTimestamp = "1630667328";
+    const validSignature = "2a8101051e97fc04246ea518fb2bfa072cd4dfe1cf2dcc92c39d3207af54544935486ae4b8d63d9655a4a577c857792700a2339a71a248e9e372f872b75d5b03";
+    const validTimestamp = "1631296745";
     const validBody = JSON.stringify({
       application_id: '881883845920698388',
-      id: '883307536600690719',
-      token: 'aW50ZXJhY3Rpb246ODgzMzA3NTM2NjAwNjkwNzE5OkJHRFBkcExVWkhsM0k5dUJiajFOb3dPQ20wNTVmaFp6WlBFQUtLa0RpQk1jTmhhYXEzSkRXMGxRYjZLTml4czdzTkdiNFlkWHdzMjFhSDNxWE5oU1d4ejF2ZzdYbEkxNjJRcHh4N2Q1SXViT21aTENDYjBBc25IUVAyR0Z2MElp',
+      id: '885947495610458183',
+      token: 'aW50ZXJhY3Rpb246ODg1OTQ3NDk1NjEwNDU4MTgzOjVEQkRaOTMyRzRiZXg0Y0tDbE16ZWViN3Y0Y1FaYjhlZFQwV1Q4YnBBeVB6OFJPY3V2RFBUSWZtNkhkWlFxZ3VKVkE0WkxFdmw5OWM0Z0ppcXBTMndsaHF4cG1oZ2J5V0EzS0ZWUHBaOGtmOEVTajRCUVJJdXJCWWVYalNOTW9B',
       type: 1,
       user: {
         avatar: 'a_ae24b8bad2d7b044e6b6bafa1b9301b4',
