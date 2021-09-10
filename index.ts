@@ -24,7 +24,7 @@ const thundraApiKey = new aws.ssm.Parameter("thundra-api-key", {
   value: cfg.requireSecret("thundra_api_key")
 });
 
-const lambdaRole = new aws.iam.Role("lambdaRole", {
+const lambdaRole = new aws.iam.Role("botApiFuncRole", {
   assumeRolePolicy: {
     Version: "2012-10-17",
     Statement: [{
@@ -36,11 +36,6 @@ const lambdaRole = new aws.iam.Role("lambdaRole", {
       Sid: ""
     }]
   }
-});
-
-new aws.iam.RolePolicyAttachment("botApiFuncRoleAttachment", {
-  role: lambdaRole,
-  policyArn: aws.iam.ManagedPolicies.AWSLambdaExecute
 });
 
 const botApiFunc = new aws.lambda.Function("botApiFunc", {
@@ -59,20 +54,53 @@ const botApiFunc = new aws.lambda.Function("botApiFunc", {
       BOT_THUNDRA_API_KEY: thundraApiKey.name
     }
   }
+}, {
+  dependsOn: lambdaRole,
+  parent: lambdaRole
 });
 
-const ssmPermission = new aws.lambda.Permission("ssmPermission", {
+new aws.lambda.Permission("botApiFuncPermission-SSM", {
   action: "lambda:InvokeFunction",
   function: botApiFunc.name,
   principal: "ssm.amazonaws.com",
   sourceArn: discordPublicKey.arn
+}, {
+  parent: botApiFunc
+});
+
+new aws.iam.RolePolicyAttachment("botApiFuncRoleAttachment-Lambda", {
+  role: lambdaRole,
+  policyArn: aws.iam.ManagedPolicies.AWSLambdaExecute
+}, {
+  parent: lambdaRole
+});
+
+new aws.iam.RolePolicyAttachment("botApiFuncRoleAttachment-CloudWatch-FullAccess", {
+  role: lambdaRole,
+  policyArn: aws.iam.ManagedPolicies.CloudWatchFullAccess
+}, {
+  parent: lambdaRole
+});
+
+new aws.iam.RolePolicyAttachment("botApiFuncRoleAttachment-CloudWatch-EventsFullAccess", {
+  role: lambdaRole,
+  policyArn: aws.iam.ManagedPolicies.CloudWatchEventsFullAccess
+}, {
+  parent: lambdaRole
+});
+
+new aws.iam.RolePolicyAttachment("botApiFuncRoleAttachment-XRay-WriteOnlyAccess", {
+  role: lambdaRole,
+  policyArn: aws.iam.ManagedPolicies.AWSXrayWriteOnlyAccess
+}, {
+  parent: lambdaRole
 });
 
 const botApiGateway = new awsx.apigateway.API("botApiGateway", {
   routes: [{
     path: "/",
     method: "ANY",
-    eventHandler: botApiFunc
+    eventHandler: botApiFunc,
   }]
 });
 

@@ -1,7 +1,7 @@
 {
     "name": "discord_emoji_bot",
     "scripts": {
-        "build": "rm -r bin && tsc",
+        "build": "rm -rf bin && tsc",
         "deploy": "npm run build && pulumi up",
         "lint": "eslint . --ext .ts",
         "test": "npx jest"
