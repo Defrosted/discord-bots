@@ -1,4 +1,4 @@
-import AWS from "aws-sdk";
+import AWS from 'aws-sdk';
 
 export class SSMManager {
   private manager: AWS.SSM;
@@ -11,7 +11,7 @@ export class SSMManager {
 
   public retrieveParameter = async (Name?: string): Promise<void> => {
     if(!Name)
-      throw new Error("Parameter name is required");
+      throw new Error('Parameter name is required');
 
     this.parameter = (
       await this.manager.getParameter({
@@ -19,11 +19,11 @@ export class SSMManager {
         WithDecryption: true
       }).promise()
     ).Parameter;
-  }
+  };
 
   public getParameterValue = async (Name?: string): Promise<string | undefined> => {
     await this.retrieveParameter(Name);
 
     return this.parameter?.Value;
-  }
+  };
 }
