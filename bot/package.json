@@ -19,6 +19,8 @@
     },
     "dependencies": {
         "aws-sdk": "^2.1077.0",
+        "axios": "^0.26.0",
+        "moment": "^2.29.1",
         "tweetnacl": "^1.0.3"
     }
 }
