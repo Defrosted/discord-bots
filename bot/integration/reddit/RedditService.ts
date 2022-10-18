@@ -1,6 +1,5 @@
 import axios from 'axios';
-import { Moment } from 'moment';
-import * as moment from 'moment';
+import { DateTime } from 'luxon';
 import { SSMManager } from '../aws/SSMManager';
 import { URLSearchParams } from 'url';
 
@@ -29,7 +28,7 @@ interface RedditListingDataChildren {
 
 export class RedditService {
   private token?: string;
-  private tokenExpiration?: Moment;
+  private tokenExpiration?: DateTime;
 
   private async authenticate() {
     const { REDDIT_CLIENT_ID, REDDIT_CLIENT_SECRET } = process.env;
@@ -52,7 +51,7 @@ export class RedditService {
 
       const { access_token, expires_in } = authResponse.data;
       this.token = access_token;
-      this.tokenExpiration = moment().add(expires_in, 'seconds');
+      this.tokenExpiration = DateTime.now().plus({ seconds: expires_in });
 
       console.info('Fetched Reddit token', authResponse.data);
 
@@ -64,7 +63,7 @@ export class RedditService {
   }
 
   public async getRandomPostUrl() {
-    if(!this.token || !this.tokenExpiration || moment().isAfter(this.tokenExpiration)) {
+    if(!this.token || !this.tokenExpiration || DateTime.now().diff(this.tokenExpiration)) {
       this.token = await this.authenticate();
     }
 
