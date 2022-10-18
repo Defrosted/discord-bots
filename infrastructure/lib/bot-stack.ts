@@ -1,22 +1,15 @@
-import { Stack, StackProps } from 'aws-cdk-lib';
+import { CfnOutput, Stack, StackProps } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
-import * as cdk from 'aws-cdk-lib';
 import * as ssm from 'aws-cdk-lib/aws-ssm';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as iam from 'aws-cdk-lib/aws-iam';
-import * as apigw from 'aws-cdk-lib/aws-apigateway';
 import * as path from 'path';
-
-interface BotParameters {
-  environmentName: string;
-}
 
 export class BotStack extends Stack {
   public readonly lambdaFunction: lambda.Function;
-  public readonly apiGateway: apigw.RestApi;
 
-  constructor (scope: Construct, id: string, props: StackProps, parameters: BotParameters) {
-    super(scope, id);
+  constructor (scope: Construct, id: string, props: StackProps) {
+    super(scope, id, props);
 
     const discordPublicKey = ssm.StringParameter.fromSecureStringParameterAttributes(this, 'discordBot-ssm-publicKey', {
       parameterName: '/wednesday/publicKey'
@@ -53,7 +46,7 @@ export class BotStack extends Stack {
     redditClientId.grantRead(lambdaRole);
     redditSecret.grantRead(lambdaRole);
 
-    const lambdaRuntime = lambda.Runtime.NODEJS_14_X;
+    const lambdaRuntime = lambda.Runtime.NODEJS_16_X;
     this.lambdaFunction = new lambda.Function(this, 'discordBot-lambdaFunction', {
       runtime: lambdaRuntime,
       handler: 'index.handler',
@@ -75,17 +68,10 @@ export class BotStack extends Stack {
         })
       ]
     });
-
-    this.apiGateway = new apigw.LambdaRestApi(this, 'discordBot-apiGateway', {
-      handler: this.lambdaFunction,
-      description: 'API Gateway for Discord Bot',
-      restApiName: 'discordBot-apiGateway',
-      deployOptions: {
-        stageName: parameters.environmentName
-      },
-      defaultCorsPreflightOptions: {
-        allowHeaders: [ 
-          ...apigw.Cors.DEFAULT_HEADERS,
+    const lambdaFunctionUrl = this.lambdaFunction.addFunctionUrl({
+      authType: lambda.FunctionUrlAuthType.NONE,
+      cors: {
+        allowedHeaders: [
           'Content-Type',
           'X-Amz-Date',
           'Authorization',
@@ -94,10 +80,14 @@ export class BotStack extends Stack {
           'X-Signature-Timestamp',
           'x-signature-timestamp'
         ],
-        allowMethods: apigw.Cors.ALL_METHODS,
         allowCredentials: true,
-        allowOrigins: apigw.Cors.ALL_ORIGINS
-      }
+        allowedMethods: [ lambda.HttpMethod.ALL ],
+        allowedOrigins: [ '*' ]
+      },
+    });
+
+    new CfnOutput(this, 'bot-function-url', {
+      value: lambdaFunctionUrl.url
     });
   }
 }

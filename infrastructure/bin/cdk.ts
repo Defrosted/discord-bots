@@ -25,8 +25,6 @@ try {
           'Application': 'wednesday-bot',
           'Environment': Environment.PRODUCTION
         }
-      }, {
-        environmentName: Environment.PRODUCTION
       });
       break;
     default:
