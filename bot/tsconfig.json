@@ -1,16 +1,25 @@
 {
-    "compilerOptions": {
-        "strict": true,
-        "outDir": "bin/code",
-        "target": "es2016",
-        "module": "commonjs",
-        "moduleResolution": "node",
-        "sourceMap": true,
-        "experimentalDecorators": true,
-        "pretty": true,
-        "noFallthroughCasesInSwitch": true,
-        "noImplicitReturns": true,
-        "forceConsistentCasingInFileNames": true,
-        "esModuleInterop": false
+  "compilerOptions": {
+    "baseUrl": ".",
+    "rootDir": ".",
+    "strict": true,
+    "outDir": "bin/code",
+    "target": "es2016",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "sourceMap": true,
+    "experimentalDecorators": true,
+    "pretty": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitReturns": true,
+    "forceConsistentCasingInFileNames": true,
+    "esModuleInterop": false,
+    "paths": {
+      "@ports/*": [ "./src/ports/*" ],
+      "@adapters/*": [ "./src/adapters/*" ],
+      "@services/*": [ "./src/services/*" ],
+      "@domain/*": [ "./src/domain/*" ],
+      "@config/*": [ "./src/config/*" ]
     }
+  }
 }

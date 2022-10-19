@@ -1,43 +1,32 @@
 import axios from 'axios';
 import { DateTime } from 'luxon';
-import { SSMManager } from '../aws/SSMManager';
 import { URLSearchParams } from 'url';
+import { ExternalRandomResourcePort } from '@ports/ExternalResourcePort';
+import { Embed } from '@domain/Embed';
+import { ExternalAuthenticatedAPIPort } from '@ports/ExternalAuthenticatedAPIPort';
+import { RedditAuthResponse, RedditListingResponse } from '@domain/RedditApi';
 
 const redditAuthUrl = 'https://www.reddit.com/api/v1/access_token';
 const redditApiBaseUrl = 'https://oauth.reddit.com';
 
-interface RedditAuthResponse {
-  'access_token': string;
-  'expires_in': number;
-}
-
-interface RedditListingResponse {
-  kind: string;
-  data: {
-    children: RedditListingDataChildren[];
-  };
-}
-
-interface RedditListingDataChildren {
-  kind: string;
-  data: {
-    url?: string;
-    title: string;
-  }
-}
-
-export class RedditService {
+export class RedditService implements ExternalAuthenticatedAPIPort, ExternalRandomResourcePort<Embed> {
   private token?: string;
   private tokenExpiration?: DateTime;
+  private tokenPromise: Promise<void>;
 
-  private async authenticate() {
-    const { REDDIT_CLIENT_ID, REDDIT_CLIENT_SECRET } = process.env;
-    const [ clientId, clientSecret ] = await Promise.all([
-      new SSMManager().getParameterValue(REDDIT_CLIENT_ID),
-      new SSMManager().getParameterValue(REDDIT_CLIENT_SECRET)
-    ]);
+  constructor(private clientId: string, private clientSecret: string) {
+    this.tokenPromise = this.authenticate();
+  }
 
-    const authString = `${clientId}:${clientSecret}`;
+  public tokenIsValid() {
+    return !!this.token && !!this.tokenExpiration && this.tokenExpiration.toMillis() > DateTime.now().toMillis();
+  }
+
+  public async authenticate() {
+    if (this.tokenIsValid())
+      return;
+
+    const authString = `${this.clientId}:${this.clientSecret}`;
 
     try {
       const authResponse = await axios.post<RedditAuthResponse>(redditAuthUrl, new URLSearchParams({
@@ -54,17 +43,16 @@ export class RedditService {
       this.tokenExpiration = DateTime.now().plus({ seconds: expires_in });
 
       console.info('Fetched Reddit token', authResponse.data);
-
-      return this.token;
     } catch(error) {
       console.error('Failed to authenticate to Reddit', error);
       throw error;
     }
   }
 
-  public async getRandomPostUrl() {
-    if(!this.token || !this.tokenExpiration || DateTime.now().diff(this.tokenExpiration)) {
-      this.token = await this.authenticate();
+  public async getRandomValue() {
+    await this.tokenPromise; // Prevent multiple simultaneous authentications
+    if(!this.tokenIsValid()) {
+      await (this.tokenPromise = this.authenticate());
     }
 
     const response = await axios.get<RedditListingResponse[]>(`${redditApiBaseUrl}/r/ItIsWednesday/random`, {

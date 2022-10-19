@@ -1,4 +1,5 @@
-import { DiscordSignatureVerifier, VerificationError } from './DiscordSignatureVerifier';
+import { VerificationError } from '@ports/SignatureVerificationPort';
+import { DiscordSignatureVerificationService } from '@services/DiscordSignatureVerifier';
 
 describe('DiscordSignatureVerifier', () => {
   const { TEST_VALID_DISCORD_PUBLIC_KEY } = process.env;
@@ -24,21 +25,14 @@ describe('DiscordSignatureVerifier', () => {
     });
 
     it('Verifies valid signature', () => {
-      const verifier = new DiscordSignatureVerifier(TEST_VALID_DISCORD_PUBLIC_KEY);
+      const verifier = new DiscordSignatureVerificationService(TEST_VALID_DISCORD_PUBLIC_KEY);
       expect(
         () => verifier.verify(validSignature, validTimestamp, validBody)
       ).not.toThrow();
     });
 
-    it('Throws on invalid public key', () => {
-      const verifier = new DiscordSignatureVerifier(undefined);
-      expect(
-        () => verifier.verify(validSignature, validTimestamp, validBody)
-      ).toThrow(VerificationError.MISSING_PUBLIC_KEY);
-    });
-
     it('Throws on missing signature or timestamp', () => {
-      const verifier = new DiscordSignatureVerifier(TEST_VALID_DISCORD_PUBLIC_KEY);
+      const verifier = new DiscordSignatureVerificationService(TEST_VALID_DISCORD_PUBLIC_KEY);
       expect(
         () => verifier.verify(undefined, validTimestamp, validBody)
       ).toThrow(VerificationError.MISSING_SIGNATURE_TIMESTAMP);
@@ -48,7 +42,7 @@ describe('DiscordSignatureVerifier', () => {
     });
 
     it('Throws on invalid signature', () => {
-      const verifier = new DiscordSignatureVerifier(TEST_VALID_DISCORD_PUBLIC_KEY);
+      const verifier = new DiscordSignatureVerificationService(TEST_VALID_DISCORD_PUBLIC_KEY);
       expect(
         () => verifier.verify(validSignature, validTimestamp, '')
       ).toThrow(VerificationError.INVALID_SIGNATURE);
