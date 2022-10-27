@@ -1,8 +1,8 @@
-export interface Interaction {
+export interface DiscordInteraction {
   id: string;
   application_id: string;
-  type: InteractionType;
-  data?: InteractionData;
+  type: DiscordInteractionType;
+  data?: DiscordInteractionData;
   guild_id?: string;
   channel_id?: string;
   member?: object;
@@ -12,7 +12,7 @@ export interface Interaction {
   message?: object;
 }
 
-export enum InteractionType {
+export enum DiscordInteractionType {
   PING = 1,
   APPLICATION_COMMAND = 2,
   MESSAGE_COMPONENT = 3,
@@ -20,11 +20,11 @@ export enum InteractionType {
   MODAL_SUBMIT = 5
 }
 
-export interface InteractionData {
+export interface DiscordInteractionData {
   id: string;
   name: string;
   type: number;
-  resolved?: InteractionResolvedData;
+  resolved?: DiscordInteractionResolvedData;
   options?: object[];
   custom_id?: string;
   component_type?: number;
@@ -32,7 +32,7 @@ export interface InteractionData {
   target_id: string;
 }
 
-export interface InteractionResolvedData {
+export interface DiscordInteractionResolvedData {
   users?: object[];
   members?: object[];
   roles?: object[];
@@ -40,7 +40,7 @@ export interface InteractionResolvedData {
   messages: object[];
 }
 
-export enum InteractionCallbackType {
+export enum DiscordInteractionCallbackType {
   PONG = 1,
   CHANNEL_MESSAGE_WITH_SOURCE = 4,
   DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE = 5,
@@ -50,12 +50,12 @@ export enum InteractionCallbackType {
   MODAL = 9
 }
 
-export interface InteractionResponse {
-  type: InteractionCallbackType;
-  data?: InteractionCallbackMessage;
+export interface DiscordInteractionResponse {
+  type: DiscordInteractionCallbackType;
+  data?: DiscordInteractionCallbackMessage;
 }
 
-export interface InteractionCallbackMessage {
+export interface DiscordInteractionCallbackMessage {
   tts?: boolean;
   content?: string;
   embeds?: {

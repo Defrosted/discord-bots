@@ -6,7 +6,8 @@ import * as iam from 'aws-cdk-lib/aws-iam';
 import * as path from 'path';
 
 export class BotStack extends Stack {
-  public readonly lambdaFunction: lambda.Function;
+  public readonly discordWebhookFunction: lambda.Function;
+  public readonly discordActionFunction: lambda.Function;
 
   constructor (scope: Construct, id: string, props: StackProps) {
     super(scope, id, props);
@@ -31,28 +32,21 @@ export class BotStack extends Stack {
       parameterName: '/wednesday/redditSecret'
     });
 
-    const lambdaRole = new iam.Role(this, 'discordBot-lambdaRole', {
-      roleName: 'discordBot-lambdaRole',
-      assumedBy: new iam.ServicePrincipal('lambda.amazonaws.com')
-    });
-
-    lambdaRole.addManagedPolicy(
-      iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSLambdaBasicExecutionRole')
-    );
-
-    discordPublicKey.grantRead(lambdaRole);
-    discordApplicationId.grantRead(lambdaRole);
-    discordBotToken.grantRead(lambdaRole);
-    redditClientId.grantRead(lambdaRole);
-    redditSecret.grantRead(lambdaRole);
+    const addLambdaRolePermissions = (lambdaRole: iam.Role) => {
+      lambdaRole.addManagedPolicy(
+        iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSLambdaBasicExecutionRole')
+      );
+  
+      discordPublicKey.grantRead(lambdaRole);
+      discordApplicationId.grantRead(lambdaRole);
+      discordBotToken.grantRead(lambdaRole);
+      redditClientId.grantRead(lambdaRole);
+      redditSecret.grantRead(lambdaRole);
+    };
 
     const lambdaRuntime = lambda.Runtime.NODEJS_16_X;
-    this.lambdaFunction = new lambda.Function(this, 'discordBot-lambdaFunction', {
-      runtime: lambdaRuntime,
-      handler: 'index.handler',
-      code: lambda.Code.fromAsset(path.join(__dirname, '../../bot/bin/code')),
-      role: lambdaRole,
-      functionName: 'discordBot-lambdaFunction',
+    const lambdaCodeBundle = lambda.Code.fromAsset(path.join(__dirname, '../../bot/bin/code'));
+    const commonDiscordLambdaProperties: Partial<lambda.FunctionProps> = {
       environment: {
         BOT_DISCORD_APPLICATION_ID: discordApplicationId.parameterName,
         BOT_DISCORD_BOT_TOKEN: discordBotToken.parameterName,
@@ -67,8 +61,46 @@ export class BotStack extends Stack {
           compatibleRuntimes: [ lambdaRuntime ]
         })
       ]
+    };
+
+    const actionFunctionRole = new iam.Role(this, 'discordBot-actionFunctionRole', {
+      roleName: 'discordBot-actionFunctionRole',
+      assumedBy: new iam.ServicePrincipal('lambda.amazonaws.com')
     });
-    const lambdaFunctionUrl = this.lambdaFunction.addFunctionUrl({
+    addLambdaRolePermissions(actionFunctionRole);
+
+    this.discordActionFunction = new lambda.Function(this, 'discordBot-actionFunction', {
+      ...commonDiscordLambdaProperties,
+      runtime: lambdaRuntime,
+      handler: 'DiscordActionHandler.handler',
+      functionName: 'discordBot-actionFunction',
+      code: lambdaCodeBundle,
+      role: actionFunctionRole
+    });
+
+    const webHookFunctionRole = new iam.Role(this, 'discordBot-webhookFunctionRole', {
+      roleName: 'discordBot-webhookFunctionRole',
+      assumedBy: new iam.ServicePrincipal('lambda.amazonaws.com')
+    });
+    addLambdaRolePermissions(webHookFunctionRole);
+
+    this.discordWebhookFunction = new lambda.Function(this, 'discordBot-webhookFunction', {
+      ...commonDiscordLambdaProperties,
+      runtime: lambdaRuntime,
+      handler: 'DiscordWebhookHandler.handler',
+      role: webHookFunctionRole,
+      functionName: 'discordBot-webhookFunction',
+      code: lambdaCodeBundle,
+      environment: {
+        ...commonDiscordLambdaProperties.environment,
+        ACTION_LAMBDA_FUNCTIONNAME: this.discordActionFunction.functionName
+      }
+    });
+    // Allow action invokes from webhook function
+    this.discordActionFunction.grantInvoke(this.discordWebhookFunction);
+    
+
+    const lambdaFunctionUrl = this.discordWebhookFunction.addFunctionUrl({
       authType: lambda.FunctionUrlAuthType.NONE,
       cors: {
         allowedHeaders: [

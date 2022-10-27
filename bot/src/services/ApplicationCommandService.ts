@@ -1,58 +1,80 @@
-import { Interaction, InteractionCallbackType, InteractionResponse } from '@domain/Interaction';
+import { InvocationType, InvokeCommand, LambdaClient } from '@aws-sdk/client-lambda';
+import { config } from '@config/.';
+import {
+  DiscordInteraction,
+  DiscordInteractionCallbackType,
+  DiscordInteractionResponse,
+} from '@domain/DiscordInteraction';
 import { BadRequestError, NotFoundError } from '@domain/HttpErrorTypes';
-import { IncomingInteractionPort } from '@ports/IncomingInteractionPort';
-import { ExternalRandomResourcePort } from '@ports/ExternalResourcePort';
-import { Embed } from '@domain/Embed';
+import {
+  IncomingBotInteractionPort,
+} from '@ports/IncomingPort';
+import { DiscordActions } from './DiscordActionService';
 
 export type CommandMap = Record<
-  string, 
-  () => Promise<InteractionResponse>
+  string,
+  (
+    interaction: DiscordInteraction
+  ) => Promise<DiscordInteractionResponse>
 >;
 
 export const WEDNESDAY_SLASH_COMMAND = 'itiswednesday';
 
-export class ApplicationCommandService implements IncomingInteractionPort {
+export class DiscordApplicationCommandService
+  implements IncomingBotInteractionPort
+{
   private readonly commandMap: CommandMap;
 
-  constructor(private randomEmbedService: ExternalRandomResourcePort<Embed>, commandMap?: CommandMap) {
+  constructor(
+    private lambdaClient: LambdaClient,
+    commandMap?: CommandMap
+  ) {
     if (commandMap)
       this.commandMap = commandMap;
-
-    this.commandMap = {
-      [WEDNESDAY_SLASH_COMMAND]: this.wednesdayCommandHandler
-    };
+    else {
+      this.commandMap = {
+        [WEDNESDAY_SLASH_COMMAND]: this.wednesdayCommandHandler.bind(this),
+      };
+    }
   }
 
-  public async process(interaction: Interaction) {
+  public async process(
+    interaction: DiscordInteraction
+  ) {
     const slashCommandName = interaction.data?.name;
     if (!slashCommandName)
       throw new BadRequestError('Slash command name was undefined');
 
     const commandHandler = this.commandMap[slashCommandName];
     if (!commandHandler)
-      throw new NotFoundError(`Unable to process slash command '${slashCommandName}'`);
+      throw new NotFoundError(
+        `Unable to process slash command '${slashCommandName}'`
+      );
 
-    return await commandHandler();
+    return await commandHandler(interaction);
   }
 
-  private async wednesdayCommandHandler(): Promise<InteractionResponse> {
-    const response: InteractionResponse = {
-      type: InteractionCallbackType.CHANNEL_MESSAGE_WITH_SOURCE,
+  private async wednesdayCommandHandler(interaction: DiscordInteraction): Promise<DiscordInteractionResponse> {
+    const initialResponse: DiscordInteractionResponse = {
+      type: DiscordInteractionCallbackType.DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE,
       data: {
         content: 'It is Wednesday my dudes!',
-        embeds: []
-      }
+        embeds: [],
+      },
     };
 
-    try {
-      const embed = await this.randomEmbedService.getRandomValue();
-      console.info('Embedded Reddit post', embed);
+    const lambdaPayload = {
+      action: DiscordActions.WednesdayMemeFollowUp,
+      data: interaction
+    };
+    await this.lambdaClient.send(
+      new InvokeCommand({
+        FunctionName: config.actionLambdaFunctionName,
+        InvocationType: InvocationType.Event,
+        Payload: Buffer.from(JSON.stringify(lambdaPayload))
+      })
+    );
 
-      response.data?.embeds?.push(embed);
-    } catch(error) {
-      console.error(error);
-    }
-
-    return response;
+    return initialResponse;
   }
 }

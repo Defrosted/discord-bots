@@ -3,11 +3,19 @@ import { HttpRequestError } from '@domain/HttpErrorTypes';
 import { DiscordSignatureVerificationService } from './src/services/DiscordSignatureVerifier';
 import { InteractionService } from '@services/InteractionService';
 import { DiscordWebhookAdapter } from '@adapters/DiscordWebhookAdapter';
-import { getSecrets, AppSecrets } from '@config/.';
+import { getSecrets, AppSecrets, config } from '@config/.';
 import { RedditService } from '@services/RedditService';
-import { ApplicationCommandService } from '@services/ApplicationCommandService';
+import { DiscordApplicationCommandService } from '@services/ApplicationCommandService';
+import { LambdaClient } from '@aws-sdk/client-lambda';
 
 let secrets: AppSecrets | undefined = undefined;
+let redditService: RedditService | undefined = undefined;
+let signatureVerificationService: DiscordSignatureVerificationService | undefined = undefined;
+const interactionService = new InteractionService(
+  new DiscordApplicationCommandService(new LambdaClient({
+    region: config.region
+  }))
+);
 
 export const handler = async (
   event: APIGatewayProxyEvent, 
@@ -18,12 +26,13 @@ export const handler = async (
     if(!secrets)
       secrets = await getSecrets();
 
-    // Create services
-    const signatureVerificationService = new DiscordSignatureVerificationService(secrets.discord.publicKey);
-    const redditService = new RedditService(secrets.reddit.clientId, secrets.reddit.clientSecret);
-    const interactionService = new InteractionService(
-      new ApplicationCommandService(redditService)
-    );
+    // Ensure Lambda context services are loaded
+    if(!redditService)
+      redditService = new RedditService(secrets.reddit.clientId, secrets.reddit.clientSecret);
+    if(!redditService.tokenIsValid())
+      await redditService.authenticate();
+    // Create ephemeral services
+    signatureVerificationService = new DiscordSignatureVerificationService(secrets.discord.publicKey);
 
     // Create webhook adapter and process event
     const discordWebhookAdapter = new DiscordWebhookAdapter(interactionService, signatureVerificationService);
@@ -35,7 +44,7 @@ export const handler = async (
       statusCode: 200,
       body: JSON.stringify(response)
     });
-  } 
+  }
   catch(error) {
     // Catch and handle errors
     if (error instanceof HttpRequestError) {

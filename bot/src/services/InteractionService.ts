@@ -1,24 +1,26 @@
-import { Interaction, InteractionCallbackType, InteractionResponse, InteractionType } from '@domain/Interaction';
+import { DiscordInteraction, DiscordInteractionCallbackType, DiscordInteractionResponse, DiscordInteractionType } from '@domain/DiscordInteraction';
 import { BadRequestError } from '@domain/HttpErrorTypes';
-import { IncomingInteractionPort } from '@ports/IncomingInteractionPort';
+import { IncomingBotInteractionPort } from '@ports/IncomingPort';
 
-export class InteractionService implements IncomingInteractionPort {
+export class InteractionService implements IncomingBotInteractionPort {
   constructor(
-    private applicationCommandService: IncomingInteractionPort
+    private applicationCommandService: IncomingBotInteractionPort
   ) {}
 
   public async process (
-    interaction: Interaction
-  ): Promise<InteractionResponse> {
+    interaction: DiscordInteraction,
+  ): Promise<DiscordInteractionResponse> {
     console.info('Received interaction', interaction);
 
     switch (interaction.type) {
-      case InteractionType.PING:
+      case DiscordInteractionType.PING:
         return {
-          type: InteractionCallbackType.PONG
+          type: DiscordInteractionCallbackType.PONG
         };
-      case InteractionType.APPLICATION_COMMAND:
+        break;
+      case DiscordInteractionType.APPLICATION_COMMAND:
         return await this.applicationCommandService.process(interaction);
+        break;
       default:
         throw new BadRequestError('Unknown interaction');
     }

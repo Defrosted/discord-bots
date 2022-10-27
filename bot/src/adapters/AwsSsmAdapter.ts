@@ -1,17 +1,17 @@
-import { ExternalResourcePort } from '@ports/ExternalResourcePort';
-import * as AWS from 'aws-sdk';
+import { GetParameterCommand, SSMClient } from '@aws-sdk/client-ssm';
+import { ExternalResourcePort } from '@ports/ExternalPort';
 
 export class AwsSsmAdapter implements ExternalResourcePort<string | undefined> {
-  constructor (private manager: AWS.SSM = new AWS.SSM()) {}
+  constructor (private ssmClient: SSMClient) {}
 
   public async getValue(resourceName?: string) {
     if (!resourceName)
       throw new Error('Parameter name is required');
 
-    const parameterResult = await this.manager.getParameter({
+    const parameterResult = await this.ssmClient.send(new GetParameterCommand({
       Name: resourceName,
       WithDecryption: true
-    }).promise();
+    }));
 
     return parameterResult.Parameter?.Value;
   }

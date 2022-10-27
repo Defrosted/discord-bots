@@ -1,9 +1,9 @@
 import axios from 'axios';
 import { DateTime } from 'luxon';
 import { URLSearchParams } from 'url';
-import { ExternalRandomResourcePort } from '@ports/ExternalResourcePort';
+import { ExternalRandomResourcePort } from '@ports/ExternalPort';
 import { Embed } from '@domain/Embed';
-import { ExternalAuthenticatedAPIPort } from '@ports/ExternalAuthenticatedAPIPort';
+import { ExternalAuthenticatedAPIPort } from '@ports/ExternalPort';
 import { RedditAuthResponse, RedditListingResponse } from '@domain/RedditApi';
 
 const redditAuthUrl = 'https://www.reddit.com/api/v1/access_token';
@@ -12,11 +12,9 @@ const redditApiBaseUrl = 'https://oauth.reddit.com';
 export class RedditService implements ExternalAuthenticatedAPIPort, ExternalRandomResourcePort<Embed> {
   private token?: string;
   private tokenExpiration?: DateTime;
-  private tokenPromise: Promise<void>;
+  private tokenPromise: Promise<void> | undefined;
 
-  constructor(private clientId: string, private clientSecret: string) {
-    this.tokenPromise = this.authenticate();
-  }
+  constructor(private clientId: string, private clientSecret: string) {}
 
   public tokenIsValid() {
     return !!this.token && !!this.tokenExpiration && this.tokenExpiration.toMillis() > DateTime.now().toMillis();
