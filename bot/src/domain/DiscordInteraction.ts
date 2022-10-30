@@ -25,11 +25,17 @@ export interface DiscordInteractionData {
   name: string;
   type: number;
   resolved?: DiscordInteractionResolvedData;
-  options?: object[];
+  options?: DiscordInteractionOption[];
   custom_id?: string;
   component_type?: number;
   values?: object[];
   target_id: string;
+}
+
+export interface DiscordInteractionOption {
+  name: string;
+  type: number;
+  options?: DiscordInteractionOption[];
 }
 
 export interface DiscordInteractionResolvedData {

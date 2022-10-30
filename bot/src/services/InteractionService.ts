@@ -10,7 +10,7 @@ export class InteractionService implements IncomingBotInteractionPort {
   public async process (
     interaction: DiscordInteraction,
   ): Promise<DiscordInteractionResponse> {
-    console.info('Received interaction', interaction);
+    console.info('Received interaction', JSON.stringify(interaction));
 
     switch (interaction.type) {
       case DiscordInteractionType.PING:

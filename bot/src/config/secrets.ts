@@ -1,6 +1,6 @@
 import { AwsSsmAdapter } from '@adapters/AwsSsmAdapter';
 import { SSMClient } from '@aws-sdk/client-ssm';
-import { config } from '@config/.';
+import { Config } from './config';
 
 export interface AppSecrets {
   reddit: {
@@ -10,10 +10,11 @@ export interface AppSecrets {
   discord: {
     publicKey: string;
     applicationId: string;
+    token: string;
   }
 }
 
-export const getSecrets = async (): Promise<AppSecrets> => {
+export const getSecrets = async (config: Config): Promise<AppSecrets> => {
   const awsSsmAdapter = new AwsSsmAdapter(
     new SSMClient({ region: config.region })
   );
@@ -21,7 +22,8 @@ export const getSecrets = async (): Promise<AppSecrets> => {
     awsSsmAdapter.getValue(config.reddit.clientId),
     awsSsmAdapter.getValue(config.reddit.clientSecret),
     awsSsmAdapter.getValue(config.discord.publicKey),
-    awsSsmAdapter.getValue(config.discord.applicationId)
+    awsSsmAdapter.getValue(config.discord.applicationId),
+    awsSsmAdapter.getValue(config.discord.token)
   ]);
 
   if (secrets.some(secret => secret === undefined))
@@ -31,7 +33,8 @@ export const getSecrets = async (): Promise<AppSecrets> => {
     redditClientId,
     redditClientSecret,
     discordPublicKey,
-    discordApplicationId
+    discordApplicationId,
+    discordToken
   ] = secrets as string[];
 
   return {
@@ -41,7 +44,8 @@ export const getSecrets = async (): Promise<AppSecrets> => {
     },
     discord: {
       publicKey: discordPublicKey,
-      applicationId: discordApplicationId
+      applicationId: discordApplicationId,
+      token: discordToken
     }
   };
 };

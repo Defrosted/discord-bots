@@ -1,12 +1,10 @@
 import { DiscordWebhookMessage, DiscordWebhookMessageFile } from '@domain/DiscordWebhookMessage';
-import { ExternalRestAPIClientPort } from '@ports/ExternalPort';
+import { ExternalAPIMethods, ExternalRestAPIClientPort } from '@ports/ExternalPort';
 import axios from 'axios';
 
 const discordApiBaseUrl = 'https://discord.com/api';
 
 export class DiscordRequestAdapter<ResultType> implements ExternalRestAPIClientPort<DiscordWebhookMessage, ResultType, DiscordWebhookMessageFile> {
-  constructor(private applicationId: string) {}
-
   private static buildFormData(data: Parameters<FormData['append']>[]) {
     const formData = new FormData();
 
@@ -17,7 +15,7 @@ export class DiscordRequestAdapter<ResultType> implements ExternalRestAPIClientP
     return formData;
   }
 
-  public async sendPatch(endpoint: string, data: DiscordWebhookMessage, files?: DiscordWebhookMessageFile[]) {
+  public async sendRequest(method: ExternalAPIMethods, endpoint: string, data: DiscordWebhookMessage, files?: DiscordWebhookMessageFile[], authToken?: string) {
     let requestData: FormData | DiscordWebhookMessage;
     if(files) {
       requestData = DiscordRequestAdapter.buildFormData([
@@ -28,11 +26,16 @@ export class DiscordRequestAdapter<ResultType> implements ExternalRestAPIClientP
       requestData = data;
     }
 
+    const headers: Record<string, string> = {
+      'Content-Type': files ? 'multipart/form-data' : 'application/json'
+    };
+
+    if(authToken)
+      headers['Authorization'] = `Bot ${authToken}`;
+
     console.info('Sending Discord patch request', data);
-    const result = await axios.patch<ResultType>(`${discordApiBaseUrl}/webhooks/${this.applicationId}/${endpoint}`, requestData, {
-      headers: {
-        'Content-Type': files ? 'multipart/form-data' : 'application/json'
-      }
+    const result = await axios[method]<ResultType>(`${discordApiBaseUrl}/${endpoint}`, requestData, {
+      headers
     });
 
     return result.data;

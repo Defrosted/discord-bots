@@ -1,7 +1,7 @@
 import { GetParameterCommand, SSMClient } from '@aws-sdk/client-ssm';
 import { ExternalResourcePort } from '@ports/ExternalPort';
 
-export class AwsSsmAdapter implements ExternalResourcePort<string | undefined> {
+export class AwsSsmAdapter implements ExternalResourcePort<string> {
   constructor (private ssmClient: SSMClient) {}
 
   public async getValue(resourceName?: string) {

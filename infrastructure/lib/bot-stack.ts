@@ -3,7 +3,10 @@ import { Construct } from 'constructs';
 import * as ssm from 'aws-cdk-lib/aws-ssm';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as iam from 'aws-cdk-lib/aws-iam';
+import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as path from 'path';
+import { Rule, RuleTargetInput, Schedule } from 'aws-cdk-lib/aws-events';
+import * as targets from 'aws-cdk-lib/aws-events-targets';
 
 export class BotStack extends Stack {
   public readonly discordWebhookFunction: lambda.Function;
@@ -49,7 +52,7 @@ export class BotStack extends Stack {
     const commonDiscordLambdaProperties: Partial<lambda.FunctionProps> = {
       environment: {
         BOT_DISCORD_APPLICATION_ID: discordApplicationId.parameterName,
-        BOT_DISCORD_BOT_TOKEN: discordBotToken.parameterName,
+        BOT_DISCORD_TOKEN: discordBotToken.parameterName,
         BOT_DISCORD_PUBLIC_KEY: discordPublicKey.parameterName,
         REDDIT_CLIENT_ID: redditClientId.parameterName,
         REDDIT_CLIENT_SECRET: redditSecret.parameterName
@@ -120,6 +123,34 @@ export class BotStack extends Stack {
 
     new CfnOutput(this, 'bot-function-url', {
       value: lambdaFunctionUrl.url
+    });
+
+    const wednesdayDynamoDBTable = new dynamodb.Table(this, 'discordBot-wednesdayRegistration-table', {
+      tableName: 'discordBot-wednesdayRegistration',
+      partitionKey: {
+        name: 'guild_id',
+        type: dynamodb.AttributeType.STRING
+      },
+      sortKey: {
+        name: 'channel_id',
+        type: dynamodb.AttributeType.STRING
+      },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST
+    });
+    wednesdayDynamoDBTable.grantReadWriteData(actionFunctionRole);
+    this.discordActionFunction.addEnvironment('WEDNESDAY_DYNAMODB_TABLE', wednesdayDynamoDBTable.tableName);
+
+    new Rule(this, 'wednesday-meme-scheduler', {
+      schedule: Schedule.cron({ weekDay: 'WED', minute: '0', hour: '0' }),
+      targets: [ 
+        new targets.LambdaFunction(this.discordActionFunction, {
+          event: RuleTargetInput.fromObject(
+            {
+              action: 'sendScheduledWednesdayMeme'
+            }
+          )
+        }) 
+      ]
     });
   }
 }

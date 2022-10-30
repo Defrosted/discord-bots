@@ -1,5 +1,4 @@
 import { InvocationType, InvokeCommand, LambdaClient } from '@aws-sdk/client-lambda';
-import { config } from '@config/.';
 import {
   DiscordInteraction,
   DiscordInteractionCallbackType,
@@ -18,7 +17,15 @@ export type CommandMap = Record<
   ) => Promise<DiscordInteractionResponse>
 >;
 
-export const WEDNESDAY_SLASH_COMMAND = 'itiswednesday';
+export enum SLASH_COMMANDS {
+  WEDNESDAY_MEME = 'itiswednesday',
+  WEDNESDAY_REGISTER = 'wednesday'
+}
+
+export enum REGISTER_COMMANDS {
+  REGISTER = 'register',
+  DEREGISTER = 'deregister'
+}
 
 export class DiscordApplicationCommandService
   implements IncomingBotInteractionPort
@@ -27,13 +34,15 @@ export class DiscordApplicationCommandService
 
   constructor(
     private lambdaClient: LambdaClient,
+    private lambdaName: string,
     commandMap?: CommandMap
   ) {
     if (commandMap)
       this.commandMap = commandMap;
     else {
       this.commandMap = {
-        [WEDNESDAY_SLASH_COMMAND]: this.wednesdayCommandHandler.bind(this),
+        [SLASH_COMMANDS.WEDNESDAY_MEME]: this.wednesdayCommandHandler.bind(this),
+        [SLASH_COMMANDS.WEDNESDAY_REGISTER]: this.registrationCommandHandler.bind(this)
       };
     }
   }
@@ -69,7 +78,35 @@ export class DiscordApplicationCommandService
     };
     await this.lambdaClient.send(
       new InvokeCommand({
-        FunctionName: config.actionLambdaFunctionName,
+        FunctionName: this.lambdaName,
+        InvocationType: InvocationType.Event,
+        Payload: Buffer.from(JSON.stringify(lambdaPayload))
+      })
+    );
+
+    return initialResponse;
+  }
+
+  private async registrationCommandHandler(interaction: DiscordInteraction): Promise<DiscordInteractionResponse> {
+    const subCommandName = interaction.data?.options?.shift()?.name;
+    if (!subCommandName || (subCommandName !== REGISTER_COMMANDS.REGISTER && subCommandName !== REGISTER_COMMANDS.DEREGISTER))
+      throw new Error('Unknown subcommand');
+    const isRegistration = subCommandName === REGISTER_COMMANDS.REGISTER;
+
+    const initialResponse: DiscordInteractionResponse = {
+      type: DiscordInteractionCallbackType.CHANNEL_MESSAGE_WITH_SOURCE,
+      data: {
+        content: `Processing ${isRegistration ? 'registration' : 'deregistration'}...`
+      }
+    };
+
+    const lambdaPayload = {
+      action: isRegistration ? DiscordActions.WednesdayRegistrationFollowUp : DiscordActions.WednesdayDeregistrationFollowUp,
+      data: interaction
+    };
+    await this.lambdaClient.send(
+      new InvokeCommand({
+        FunctionName: this.lambdaName,
         InvocationType: InvocationType.Event,
         Payload: Buffer.from(JSON.stringify(lambdaPayload))
       })
