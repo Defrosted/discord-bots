@@ -4,9 +4,11 @@ import * as ssm from 'aws-cdk-lib/aws-ssm';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
+import * as nodejs from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as path from 'path';
 import { Rule, RuleTargetInput, Schedule } from 'aws-cdk-lib/aws-events';
 import * as targets from 'aws-cdk-lib/aws-events-targets';
+import * as cdk from 'aws-cdk-lib';
 
 export class BotStack extends Stack {
   public readonly discordWebhookFunction: lambda.Function;
@@ -48,8 +50,7 @@ export class BotStack extends Stack {
     };
 
     const lambdaRuntime = lambda.Runtime.NODEJS_16_X;
-    const lambdaCodeBundle = lambda.Code.fromAsset(path.join(__dirname, '../../bot/bin/code'));
-    const commonDiscordLambdaProperties: Partial<lambda.FunctionProps> = {
+    const commonDiscordLambdaProperties: Partial<nodejs.NodejsFunctionProps> = {
       environment: {
         BOT_DISCORD_APPLICATION_ID: discordApplicationId.parameterName,
         BOT_DISCORD_TOKEN: discordBotToken.parameterName,
@@ -57,13 +58,11 @@ export class BotStack extends Stack {
         REDDIT_CLIENT_ID: redditClientId.parameterName,
         REDDIT_CLIENT_SECRET: redditSecret.parameterName
       },
-      layers: [
-        new lambda.LayerVersion(this, 'discordBot-lambdaFunctionDependencies', {
-          code: lambda.Code.fromAsset(path.join(__dirname, '../../bot/bin/dependencies')),
-          description: 'Node libraries for lambda',
-          compatibleRuntimes: [ lambdaRuntime ]
-        })
-      ]
+      bundling: {
+        minify: true,
+        sourceMap: true,
+      },
+      timeout: cdk.Duration.seconds(30)
     };
 
     const actionFunctionRole = new iam.Role(this, 'discordBot-actionFunctionRole', {
@@ -72,12 +71,11 @@ export class BotStack extends Stack {
     });
     addLambdaRolePermissions(actionFunctionRole);
 
-    this.discordActionFunction = new lambda.Function(this, 'discordBot-actionFunction', {
+    this.discordActionFunction = new nodejs.NodejsFunction(this, 'discordBot-actionFunction', {
       ...commonDiscordLambdaProperties,
+      entry: path.join(__dirname, '../..', 'bot/DiscordActionHandler.ts'),
       runtime: lambdaRuntime,
-      handler: 'DiscordActionHandler.handler',
       functionName: 'discordBot-actionFunction',
-      code: lambdaCodeBundle,
       role: actionFunctionRole
     });
 
@@ -87,13 +85,12 @@ export class BotStack extends Stack {
     });
     addLambdaRolePermissions(webHookFunctionRole);
 
-    this.discordWebhookFunction = new lambda.Function(this, 'discordBot-webhookFunction', {
+    this.discordWebhookFunction = new nodejs.NodejsFunction(this, 'discordBot-webhookFunction', {
       ...commonDiscordLambdaProperties,
       runtime: lambdaRuntime,
-      handler: 'DiscordWebhookHandler.handler',
+      entry: path.join(__dirname, '../..', 'bot/DiscordWebhookHandler.ts'),
       role: webHookFunctionRole,
       functionName: 'discordBot-webhookFunction',
-      code: lambdaCodeBundle,
       environment: {
         ...commonDiscordLambdaProperties.environment,
         ACTION_LAMBDA_FUNCTIONNAME: this.discordActionFunction.functionName

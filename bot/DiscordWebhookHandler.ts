@@ -7,13 +7,11 @@ import { HttpRequestError } from '@domain/HttpErrorTypes';
 import { DiscordSignatureVerificationService } from './src/services/DiscordSignatureVerifier';
 import { InteractionService } from '@services/InteractionService';
 import { DiscordWebhookAdapter } from '@adapters/DiscordWebhookAdapter';
-import { getSecrets, AppSecrets, getConfig } from '@config/.';
-import { RedditService } from '@services/RedditService';
+import { AppSecrets, getConfig, getSecrets } from '@config/.';
 import { DiscordApplicationCommandService } from '@services/ApplicationCommandService';
 import { LambdaClient } from '@aws-sdk/client-lambda';
 
 let secrets: AppSecrets | undefined = undefined;
-let redditService: RedditService | undefined = undefined;
 
 export const handler = async (
   event: APIGatewayProxyEvent,
@@ -24,13 +22,6 @@ export const handler = async (
     const config = getConfig([ 'WEDNESDAY_DYNAMODB_TABLE' ] as const);
     if (!secrets) secrets = await getSecrets(config);
 
-    // Ensure Lambda context services are loaded
-    if (!redditService)
-      redditService = new RedditService(
-        secrets.reddit.clientId,
-        secrets.reddit.clientSecret
-      );
-    if (!redditService.tokenIsValid()) await redditService.authenticate();
     // Create ephemeral services
     const signatureVerificationService =
       new DiscordSignatureVerificationService(secrets.discord.publicKey);
@@ -39,8 +30,7 @@ export const handler = async (
         new LambdaClient({
           region: config.region,
         }),
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        config.actionLambdaFunctionName!
+        config.actionLambdaFunctionName
       )
     );
 

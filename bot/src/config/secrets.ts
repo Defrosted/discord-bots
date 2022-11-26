@@ -1,6 +1,6 @@
 import { AwsSsmAdapter } from '@adapters/AwsSsmAdapter';
 import { SSMClient } from '@aws-sdk/client-ssm';
-import { Config } from './config';
+import { Config, EnvKeyArray } from './config';
 
 export interface AppSecrets {
   reddit: {
@@ -14,7 +14,7 @@ export interface AppSecrets {
   }
 }
 
-export const getSecrets = async (config: Config): Promise<AppSecrets> => {
+export const getSecrets = async <T extends EnvKeyArray>(config: Config<T>): Promise<AppSecrets> => {
   const awsSsmAdapter = new AwsSsmAdapter(
     new SSMClient({ region: config.region })
   );

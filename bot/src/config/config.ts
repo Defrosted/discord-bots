@@ -1,7 +1,3 @@
-/*interface SafeEnv {
-  [key: string]: string | undefined;
-}*/
-
 export interface Env {
   AWS_REGION: string;
   ACTION_LAMBDA_FUNCTIONNAME: string;
@@ -13,14 +9,22 @@ export interface Env {
   BOT_DISCORD_TOKEN: string;
 }
 
-type RequiredWithOptionalKeys<T, K extends keyof T> = Required<Omit<T, K>> & Partial<Pick<T, K>>;
-
 const defaultOptionalKeys = [
   'ACTION_LAMBDA_FUNCTIONNAME',
   'WEDNESDAY_DYNAMODB_TABLE'
 ] as const;
 
-const getEnv = (optionalKeys: readonly (keyof Env)[] = defaultOptionalKeys) => new Proxy(process.env, {
+export type EnvKeyArray = readonly (keyof Env)[];
+type RequiredWithOptionalKeys<K extends EnvKeyArray> = {
+  [P in keyof Env]: P extends K[number]
+    ? string | undefined
+    : string
+};
+
+
+const getEnv = <T extends EnvKeyArray>(
+  optionalKeys: readonly (keyof Env)[] = defaultOptionalKeys
+): RequiredWithOptionalKeys<T> => new Proxy(process.env as unknown as Env, {
   get: (env, variable: keyof Env): string | undefined  => {
     const value = env[variable];
     if (!optionalKeys.includes(variable) && typeof value === 'undefined')
@@ -28,10 +32,10 @@ const getEnv = (optionalKeys: readonly (keyof Env)[] = defaultOptionalKeys) => n
     
     return value;
   }
-}) as RequiredWithOptionalKeys<Env, typeof optionalKeys[number]>;
+});
 
-export const getConfig = (optionalKeys?: readonly (keyof Env)[]) => {
-  const env = getEnv(optionalKeys);
+export const getConfig = <T extends EnvKeyArray>(optionalKeys?: T): Config<T> => {
+  const env = getEnv<T>(optionalKeys);
   return {
     region: env.AWS_REGION,
     actionLambdaFunctionName: env.ACTION_LAMBDA_FUNCTIONNAME,
@@ -50,4 +54,19 @@ export const getConfig = (optionalKeys?: readonly (keyof Env)[]) => {
   };
 };
 
-export type Config = ReturnType<typeof getConfig>;
+export type Config<T extends EnvKeyArray = typeof defaultOptionalKeys> = {
+  region: RequiredWithOptionalKeys<T>['AWS_REGION'],
+  actionLambdaFunctionName: RequiredWithOptionalKeys<T>['ACTION_LAMBDA_FUNCTIONNAME'],
+  aws: {
+    wednesdayDynamodbTableName: RequiredWithOptionalKeys<T>['WEDNESDAY_DYNAMODB_TABLE']
+  },
+  reddit: {
+    clientId: RequiredWithOptionalKeys<T>['REDDIT_CLIENT_ID']
+    clientSecret: RequiredWithOptionalKeys<T>['REDDIT_CLIENT_SECRET']
+  },
+  discord: {
+    applicationId: RequiredWithOptionalKeys<T>['BOT_DISCORD_APPLICATION_ID'],
+    publicKey: RequiredWithOptionalKeys<T>['BOT_DISCORD_PUBLIC_KEY'],
+    token: RequiredWithOptionalKeys<T>['BOT_DISCORD_TOKEN']
+  }
+}

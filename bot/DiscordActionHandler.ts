@@ -33,8 +33,7 @@ export const handler = async (
         new DynamoDBClient({
           region: config.region,
         }),
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        config.aws.wednesdayDynamodbTableName!
+        config.aws.wednesdayDynamodbTableName
       );
     const actionService = new DiscordActionService(
       secrets.discord.applicationId,

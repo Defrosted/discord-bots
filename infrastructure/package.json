@@ -1,8 +1,7 @@
 {
     "name": "discord_emoji_bot",
     "scripts": {
-        "build": "cd ../bot && npm run build && cd ../infrastructure",
-        "deploy:prod": "npm run build && cross-env CDK_ENVIRONMENT=production cdk deploy",
+        "deploy:prod": "cross-env CDK_ENVIRONMENT=production cdk deploy",
         "lint": "eslint . --ext .ts",
         "test": "npx jest"
     },
@@ -13,6 +12,7 @@
         "@typescript-eslint/parser": "^5.41.0",
         "cross-env": "^7.0.3",
         "dotenv": "^16.0.3",
+        "esbuild": "^0.15.15",
         "eslint": "^8.26.0",
         "jest": "^29.2.2",
         "ts-jest": "^29.0.3",
