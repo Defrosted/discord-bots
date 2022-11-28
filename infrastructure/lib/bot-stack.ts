@@ -49,8 +49,8 @@ export class BotStack extends Stack {
       redditSecret.grantRead(lambdaRole);
     };
 
-    const lambdaRuntime = lambda.Runtime.NODEJS_16_X;
-    const commonDiscordLambdaProperties: Partial<nodejs.NodejsFunctionProps> = {
+    const commonDiscordLambdaProperties: Partial<lambda.DockerImageFunctionProps> = {
+      architecture: lambda.Architecture.ARM_64,
       environment: {
         BOT_DISCORD_APPLICATION_ID: discordApplicationId.parameterName,
         BOT_DISCORD_TOKEN: discordBotToken.parameterName,
@@ -58,11 +58,7 @@ export class BotStack extends Stack {
         REDDIT_CLIENT_ID: redditClientId.parameterName,
         REDDIT_CLIENT_SECRET: redditSecret.parameterName
       },
-      bundling: {
-        minify: true,
-        sourceMap: true,
-      },
-      timeout: cdk.Duration.seconds(30)
+      timeout: cdk.Duration.seconds(30),
     };
 
     const actionFunctionRole = new iam.Role(this, 'discordBot-actionFunctionRole', {
@@ -71,10 +67,13 @@ export class BotStack extends Stack {
     });
     addLambdaRolePermissions(actionFunctionRole);
 
-    this.discordActionFunction = new nodejs.NodejsFunction(this, 'discordBot-actionFunction', {
+    this.discordActionFunction = new lambda.DockerImageFunction(this, 'discordBot-actionFunction', {
       ...commonDiscordLambdaProperties,
-      entry: path.join(__dirname, '../..', 'bot/DiscordActionHandler.ts'),
-      runtime: lambdaRuntime,
+      code: lambda.DockerImageCode.fromImageAsset(path.join(__dirname, '../../bot'), { 
+        buildArgs: {
+          entry: 'DiscordActionHandler.ts'
+        } 
+      }),
       functionName: 'discordBot-actionFunction',
       role: actionFunctionRole
     });
@@ -85,10 +84,13 @@ export class BotStack extends Stack {
     });
     addLambdaRolePermissions(webHookFunctionRole);
 
-    this.discordWebhookFunction = new nodejs.NodejsFunction(this, 'discordBot-webhookFunction', {
+    this.discordWebhookFunction = new lambda.DockerImageFunction(this, 'discordBot-webhookFunction', {
       ...commonDiscordLambdaProperties,
-      runtime: lambdaRuntime,
-      entry: path.join(__dirname, '../..', 'bot/DiscordWebhookHandler.ts'),
+      code: lambda.DockerImageCode.fromImageAsset(path.join(__dirname, '../../bot'), { 
+        buildArgs: {
+          entry: 'DiscordWebhookHandler.ts'
+        } 
+      }),
       role: webHookFunctionRole,
       functionName: 'discordBot-webhookFunction',
       environment: {

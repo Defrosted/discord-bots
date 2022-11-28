@@ -7,11 +7,12 @@ import { HttpRequestError } from '@domain/HttpErrorTypes';
 import { DiscordSignatureVerificationService } from './src/services/DiscordSignatureVerifier';
 import { InteractionService } from '@services/InteractionService';
 import { DiscordWebhookAdapter } from '@adapters/DiscordWebhookAdapter';
-import { AppSecrets, getConfig, getSecrets } from '@config/.';
+import { getConfig, getSecrets } from '@config/.';
 import { DiscordApplicationCommandService } from '@services/ApplicationCommandService';
 import { LambdaClient } from '@aws-sdk/client-lambda';
 
-let secrets: AppSecrets | undefined = undefined;
+const config = getConfig([ 'WEDNESDAY_DYNAMODB_TABLE' ] as const);
+const secrets = getSecrets(config);
 
 export const handler = async (
   event: APIGatewayProxyEvent,
@@ -19,12 +20,11 @@ export const handler = async (
   callback: APIGatewayProxyCallbackV2
 ): Promise<void> => {
   try {
-    const config = getConfig([ 'WEDNESDAY_DYNAMODB_TABLE' ] as const);
-    if (!secrets) secrets = await getSecrets(config);
+    
 
     // Create ephemeral services
     const signatureVerificationService =
-      new DiscordSignatureVerificationService(secrets.discord.publicKey);
+      new DiscordSignatureVerificationService(await secrets.discordPublicKey);
     const interactionService = new InteractionService(
       new DiscordApplicationCommandService(
         new LambdaClient({

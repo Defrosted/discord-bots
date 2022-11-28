@@ -9,7 +9,7 @@ export interface Env {
   BOT_DISCORD_TOKEN: string;
 }
 
-const defaultOptionalKeys = [
+export const defaultOptionalKeys = [
   'ACTION_LAMBDA_FUNCTIONNAME',
   'WEDNESDAY_DYNAMODB_TABLE'
 ] as const;

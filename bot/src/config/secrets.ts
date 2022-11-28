@@ -1,51 +1,50 @@
 import { AwsSsmAdapter } from '@adapters/AwsSsmAdapter';
 import { SSMClient } from '@aws-sdk/client-ssm';
-import { Config, EnvKeyArray } from './config';
+import { getConfig } from '.';
+import { Config, defaultOptionalKeys, EnvKeyArray } from './config';
 
-export interface AppSecrets {
-  reddit: {
-    clientId: string;
-    clientSecret: string;
-  },
-  discord: {
-    publicKey: string;
-    applicationId: string;
-    token: string;
-  }
-}
+const awsSsmAdapter = new AwsSsmAdapter(
+  new SSMClient({ region: getConfig(defaultOptionalKeys).region })
+);
 
-export const getSecrets = async <T extends EnvKeyArray>(config: Config<T>): Promise<AppSecrets> => {
-  const awsSsmAdapter = new AwsSsmAdapter(
-    new SSMClient({ region: config.region })
-  );
-  const secrets = await Promise.all([
-    awsSsmAdapter.getValue(config.reddit.clientId),
-    awsSsmAdapter.getValue(config.reddit.clientSecret),
-    awsSsmAdapter.getValue(config.discord.publicKey),
-    awsSsmAdapter.getValue(config.discord.applicationId),
-    awsSsmAdapter.getValue(config.discord.token)
-  ]);
-
-  if (secrets.some(secret => secret === undefined))
-    throw new Error('Failed to fetch secrets from AWS SSM, check stored values');
-
-  const [
-    redditClientId,
-    redditClientSecret,
-    discordPublicKey,
-    discordApplicationId,
-    discordToken
-  ] = secrets as string[];
-
-  return {
-    reddit: {
-      clientId: redditClientId,
-      clientSecret: redditClientSecret
-    },
-    discord: {
-      publicKey: discordPublicKey,
-      applicationId: discordApplicationId,
-      token: discordToken
-    }
+export const getSecrets = <T extends EnvKeyArray>(config: Config<T>) => {
+  const secretBase = {
+    redditClientId: config.reddit.clientId as string | undefined,
+    redditClientSecret: config.reddit.clientSecret as string | undefined,
+    discordPublicKey: config.discord.publicKey as string | undefined,
+    discordApplicationId: config.discord.applicationId as string | undefined,
+    discordToken: config.discord.token as string | undefined
   };
+
+  type SecretKeys = keyof typeof secretBase
+  type Secret = {
+    [key in `${SecretKeys}_resolved`]?: Promise<string>;
+  } & {
+    [key in SecretKeys]?: string;
+  }
+
+  return new Proxy(secretBase, {
+    get(target: Secret, prop: string): Promise<string> {
+      const key = prop as keyof typeof target;
+      const value = target[key];
+
+      if(!value)
+        throw new Error(`Config value for secret key '${prop}' is undefined`);
+      if(value instanceof Promise)
+        return value;
+      
+      const resolvedValue = target[`${key as SecretKeys}_resolved`];
+      if(resolvedValue)
+        return resolvedValue;
+
+      const ssmPromise = awsSsmAdapter.getValue(value)
+        .then(value => {
+          if(!value)
+            throw new Error(`SSM Parameter value for '${prop}' was undefined`);
+          return value;
+        });
+      target[`${key as SecretKeys}_resolved`] = ssmPromise;
+      return ssmPromise;
+    }
+  }) as unknown as { [key in SecretKeys]: Promise<string> };
 };

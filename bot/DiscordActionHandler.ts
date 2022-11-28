@@ -1,7 +1,7 @@
 import { AwsDynamoDbAdapter } from '@adapters/AwsDynamoDbAdapter';
 import { DiscordRequestAdapter } from '@adapters/DiscordRequestAdapter';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { AppSecrets, getConfig, getSecrets } from '@config/.';
+import { getConfig, getSecrets } from '@config/.';
 import { HttpRequestError } from '@domain/HttpErrorTypes';
 import { ActionEvent } from '@ports/ActionPort';
 import {
@@ -12,7 +12,8 @@ import {
 import { RedditService } from '@services/RedditService';
 import { APIGatewayProxyCallbackV2, Context } from 'aws-lambda';
 
-let secrets: AppSecrets | undefined = undefined;
+const config = getConfig([ 'ACTION_LAMBDA_FUNCTIONNAME' ] as const);
+const secrets = getSecrets(config);
 let redditService: RedditService | undefined = undefined;
 
 export const handler = async (
@@ -21,11 +22,14 @@ export const handler = async (
   callback: APIGatewayProxyCallbackV2
 ): Promise<void> => {
   try {
-    const config = getConfig([ 'ACTION_LAMBDA_FUNCTIONNAME' ] as const);
-    if (!secrets) secrets = await getSecrets(config);
+    const [
+      redditClientId, redditClientSecret, discordApplicationId, discordToken
+    ] = await Promise.all([
+      secrets.redditClientId, secrets.redditClientSecret, secrets.discordApplicationId, secrets.discordToken
+    ]);
     redditService = new RedditService(
-      secrets.reddit.clientId,
-      secrets.reddit.clientSecret
+      redditClientId,
+      redditClientSecret
     );
     const discordRequestAdapter = new DiscordRequestAdapter();
     const wednesdayRegistrationDynamoAdapter =
@@ -36,8 +40,8 @@ export const handler = async (
         config.aws.wednesdayDynamodbTableName
       );
     const actionService = new DiscordActionService(
-      secrets.discord.applicationId,
-      secrets.discord.token,
+      discordApplicationId,
+      discordToken,
       redditService,
       discordRequestAdapter,
       wednesdayRegistrationDynamoAdapter

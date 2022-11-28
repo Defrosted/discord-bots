@@ -1,9 +1,6 @@
 {
     "name": "discord_emoji_bot",
     "scripts": {
-        "clean": "rm -rf bin/code",
-        "install-dist": "npx mkdirp bin/dependencies/nodejs && cp package*.json bin/dependencies/nodejs && cd bin/dependencies/nodejs && npm i --production && cd ../../..",
-        "build": "npm run clean && npm run install-dist && tsc && resolve-tspaths",
         "lint": "eslint . --ext .ts",
         "test": "npx jest"
     },
@@ -15,6 +12,7 @@
         "@typescript-eslint/eslint-plugin": "^5.41.0",
         "@typescript-eslint/parser": "^5.41.0",
         "dotenv": "^16.0.3",
+        "esbuild": "^0.15.16",
         "eslint": "^8.26.0",
         "jest": "^29.2.2",
         "resolve-tspaths": "^0.8.3",
