@@ -2,14 +2,13 @@ import axios from 'axios';
 import { DateTime } from 'luxon';
 import { URLSearchParams } from 'url';
 import { ExternalRandomResourcePort } from '@ports/ExternalPort';
-import { Embed } from '@domain/Embed';
 import { ExternalAuthenticatedAPIPort } from '@ports/ExternalPort';
-import { RedditAuthResponse, RedditListingResponse } from '@domain/RedditApi';
+import { RedditAuthResponse, RedditEmbed, RedditListingResponse } from '@domain/RedditApi';
 
 const redditAuthUrl = 'https://www.reddit.com/api/v1/access_token';
 const redditApiBaseUrl = 'https://oauth.reddit.com';
 
-export class RedditService implements ExternalAuthenticatedAPIPort, ExternalRandomResourcePort<Embed> {
+export class RedditService implements ExternalAuthenticatedAPIPort, ExternalRandomResourcePort<RedditEmbed> {
   private token?: string;
   private tokenExpiration?: DateTime;
   private tokenPromise: Promise<void> | undefined;
@@ -47,7 +46,7 @@ export class RedditService implements ExternalAuthenticatedAPIPort, ExternalRand
     }
   }
 
-  public async getRandomValue() {
+  public async getRandomValue(): Promise<RedditEmbed> {
     await this.tokenPromise; // Prevent multiple simultaneous authentications
     if(!this.tokenIsValid()) {
       await (this.tokenPromise = this.authenticate());
@@ -60,7 +59,8 @@ export class RedditService implements ExternalAuthenticatedAPIPort, ExternalRand
       }
     });
 
-    const { url, title } = response.data
+    console.debug('Reddit response', JSON.stringify(response.data));
+    const { url, title, is_video } = response.data
       .map(value => value.data.children)
       .flat()
       .filter(listing => listing.kind === 't3')[0].data; // Filter top level posts only and pick first index data
@@ -68,7 +68,8 @@ export class RedditService implements ExternalAuthenticatedAPIPort, ExternalRand
     return {
       title,
       url,
-      description: title
+      description: title,
+      isVideo: is_video
     };
   }
 }

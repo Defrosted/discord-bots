@@ -1,11 +1,13 @@
-export interface Embed {
+type EmbedTypeKeys = 'image' | 'video';
+
+interface EmbedObject {
   title: string;
   url?: string;
   description: string;
-  image?: {
-    url: string;
-    proxy_url?: string;
-    height?: number;
-    width?: number;
-  }
 }
+
+export type Embed = {
+  [key in EmbedTypeKeys]?: {
+    url: string;
+  }
+} & EmbedObject;

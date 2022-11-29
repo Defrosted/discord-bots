@@ -78,7 +78,8 @@ export class BotStack extends Stack {
       ...commonDiscordLambdaProperties,
       entry: path.join(__dirname, '../../bot/DiscordActionHandler.ts'),
       functionName: 'discordBot-actionFunction',
-      role: actionFunctionRole
+      role: actionFunctionRole,
+      memorySize: 256
     });
 
     const webHookFunctionRole = new iam.Role(this, 'discordBot-webhookFunctionRole', {

@@ -2,8 +2,8 @@ import { AwsDynamoDbAdapter } from '@adapters/AwsDynamoDbAdapter';
 import { DiscordRequestAdapter } from '@adapters/DiscordRequestAdapter';
 import { DiscordInteraction } from '@domain/DiscordInteraction';
 import { DiscordWebhookMessage } from '@domain/DiscordWebhookMessage';
-import { Embed } from '@domain/Embed';
 import { NotFoundError } from '@domain/HttpErrorTypes';
+import { RedditEmbed } from '@domain/RedditApi';
 import { ActionPort } from '@ports/ActionPort';
 import { ExternalRandomResourcePort } from '@ports/ExternalPort';
 
@@ -23,8 +23,8 @@ export class DiscordActionService implements ActionPort<DiscordActions> {
   constructor(
     private applicationId: string,
     private token: string,
-    private randomEmbedService: ExternalRandomResourcePort<Embed>,
-    private discordRequestAdapter: DiscordRequestAdapter<any>,
+    private randomEmbedService: ExternalRandomResourcePort<RedditEmbed>,
+    private discordRequestAdapter: DiscordRequestAdapter,
     private dynamodbAdapter: AwsDynamoDbAdapter<DynamoDBRegistrationSchema>
   ) {}
 
@@ -47,6 +47,35 @@ export class DiscordActionService implements ActionPort<DiscordActions> {
     }
   }
 
+  public static buildWebhookMessage(content: string, embed: RedditEmbed): DiscordWebhookMessage {
+    const { title, description, url, isVideo } = embed;
+    if (!url) {
+      throw new Error('Embed does not have an url');
+    }
+
+    const message: DiscordWebhookMessage = {
+      content,
+    };
+
+    if(isVideo) {
+      message.content += ` ${url}`;
+    } else {
+      message.embeds = [
+        {
+          title,
+          description,
+          url,
+          image: {
+            url,
+          },
+        },
+      ];
+    }
+
+    console.debug('Discord webhook message', message);
+    return message;
+  }
+
   public async sendWednesdayMemeFollowUp(
     interaction: DiscordInteraction
   ): Promise<void> {
@@ -54,30 +83,14 @@ export class DiscordActionService implements ActionPort<DiscordActions> {
       // Get an embed
       console.info('Fetching random embed');
       const embed = await this.randomEmbedService.getRandomValue();
-      if (!embed?.url) {
-        throw new Error('Failed to get an embed with an image');
-      }
-
-      const webhookMessage: DiscordWebhookMessage = {
-        content: 'It is Wednesday my dudes!',
-        embeds: [
-          {
-            ...embed,
-            image: {
-              url: embed.url,
-            },
-          },
-        ],
-      };
-
       const result = await this.discordRequestAdapter.sendRequest(
         'patch',
         `webhooks/${this.applicationId}/${interaction.token}/messages/@original`,
-        webhookMessage
+        DiscordActionService.buildWebhookMessage('It is Wednesday my dudes!', embed)
       );
       console.debug('Discord result', result);
     } catch (error) {
-      console.error('Failed to fetch an wednesday meme embed', error);
+      console.error('Failed to fetch and post an wednesday meme embed', error);
     }
   }
 
@@ -142,34 +155,16 @@ export class DiscordActionService implements ActionPort<DiscordActions> {
         scheduledServers,
       ]);
 
-      if (!memeEmbed?.url) {
-        throw new Error('Failed to get an embed with an image');
-      }
-
-      const message: DiscordWebhookMessage = {
-        content: 'It is Wednesday my dudes!',
-        embeds: [
-          {
-            ...memeEmbed,
-            image: {
-              url: memeEmbed.url,
-            },
-          },
-        ],
-      };
-
-      if(!guilds)
-        throw new Error('No guilds with registered schedule');
       await Promise.all(
-        guilds.map(({ channel_id }) =>
+        guilds?.map(({ channel_id }) =>
           this.discordRequestAdapter.sendRequest(
             'post',
             `channels/${channel_id}/messages`,
-            message,
+            DiscordActionService.buildWebhookMessage('It is Wednesday my dudes!', memeEmbed),
             undefined,
             this.token
           )
-        )
+        ) ?? []
       );
     } catch (error) {
       console.error('Failed to send scheduled wednesday memes', error);

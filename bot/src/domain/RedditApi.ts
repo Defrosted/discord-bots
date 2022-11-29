@@ -15,5 +15,13 @@ export interface RedditListingDataChildren {
   data: {
     url?: string;
     title: string;
+    is_video: boolean;
   }
+}
+
+export interface RedditEmbed {
+  title: string;
+  url?: string;
+  description: string;
+  isVideo: boolean;
 }

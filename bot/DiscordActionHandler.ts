@@ -27,10 +27,12 @@ export const handler = async (
     ] = await Promise.all([
       secrets.redditClientId, secrets.redditClientSecret, secrets.discordApplicationId, secrets.discordToken
     ]);
-    redditService = new RedditService(
-      redditClientId,
-      redditClientSecret
-    );
+    if(!redditService) {
+      redditService = new RedditService(
+        redditClientId,
+        redditClientSecret
+      );
+    }
     const discordRequestAdapter = new DiscordRequestAdapter();
     const wednesdayRegistrationDynamoAdapter =
       new AwsDynamoDbAdapter<DynamoDBRegistrationSchema>(

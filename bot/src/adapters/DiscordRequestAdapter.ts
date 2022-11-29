@@ -4,7 +4,7 @@ import axios from 'axios';
 
 const discordApiBaseUrl = 'https://discord.com/api';
 
-export class DiscordRequestAdapter<ResultType> implements ExternalRestAPIClientPort<DiscordWebhookMessage, ResultType, DiscordWebhookMessageFile> {
+export class DiscordRequestAdapter<ResultType = Record<string, unknown>> implements ExternalRestAPIClientPort<DiscordWebhookMessage, ResultType, DiscordWebhookMessageFile> {
   private static buildFormData(data: Parameters<FormData['append']>[]) {
     const formData = new FormData();
 
@@ -33,7 +33,6 @@ export class DiscordRequestAdapter<ResultType> implements ExternalRestAPIClientP
     if(authToken)
       headers['Authorization'] = `Bot ${authToken}`;
 
-    console.info('Sending Discord patch request', data);
     const result = await axios[method]<ResultType>(`${discordApiBaseUrl}/${endpoint}`, requestData, {
       headers
     });
