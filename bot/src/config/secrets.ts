@@ -37,6 +37,7 @@ export const getSecrets = <T extends EnvKeyArray>(config: Config<T>) => {
       if(resolvedValue)
         return resolvedValue;
 
+      console.log(`Loading secret ${prop}`);
       const ssmPromise = awsSsmAdapter.getValue(value)
         .then(value => {
           if(!value)

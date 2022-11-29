@@ -49,7 +49,8 @@ export class BotStack extends Stack {
       redditSecret.grantRead(lambdaRole);
     };
 
-    const commonDiscordLambdaProperties: Partial<lambda.DockerImageFunctionProps> = {
+    const commonDiscordLambdaProperties: Partial<nodejs.NodejsFunctionProps> = {
+      runtime: lambda.Runtime.NODEJS_16_X,
       architecture: lambda.Architecture.ARM_64,
       environment: {
         BOT_DISCORD_APPLICATION_ID: discordApplicationId.parameterName,
@@ -58,7 +59,13 @@ export class BotStack extends Stack {
         REDDIT_CLIENT_ID: redditClientId.parameterName,
         REDDIT_CLIENT_SECRET: redditSecret.parameterName
       },
-      timeout: cdk.Duration.seconds(30),
+      timeout: cdk.Duration.seconds(10),
+      bundling: {
+        minify: true,
+        sourceMap: true,
+        forceDockerBundling: process.platform === 'win32'
+      },
+      depsLockFilePath: path.join(__dirname, '../../bot/package-lock.json')
     };
 
     const actionFunctionRole = new iam.Role(this, 'discordBot-actionFunctionRole', {
@@ -67,13 +74,9 @@ export class BotStack extends Stack {
     });
     addLambdaRolePermissions(actionFunctionRole);
 
-    this.discordActionFunction = new lambda.DockerImageFunction(this, 'discordBot-actionFunction', {
+    this.discordActionFunction = new nodejs.NodejsFunction(this, 'discordBot-actionFunction', {
       ...commonDiscordLambdaProperties,
-      code: lambda.DockerImageCode.fromImageAsset(path.join(__dirname, '../../bot'), { 
-        buildArgs: {
-          entry: 'DiscordActionHandler.ts'
-        } 
-      }),
+      entry: path.join(__dirname, '../../bot/DiscordActionHandler.ts'),
       functionName: 'discordBot-actionFunction',
       role: actionFunctionRole
     });
@@ -84,19 +87,16 @@ export class BotStack extends Stack {
     });
     addLambdaRolePermissions(webHookFunctionRole);
 
-    this.discordWebhookFunction = new lambda.DockerImageFunction(this, 'discordBot-webhookFunction', {
+    this.discordWebhookFunction = new nodejs.NodejsFunction(this, 'discordBot-webhookFunction', {
       ...commonDiscordLambdaProperties,
-      code: lambda.DockerImageCode.fromImageAsset(path.join(__dirname, '../../bot'), { 
-        buildArgs: {
-          entry: 'DiscordWebhookHandler.ts'
-        } 
-      }),
+      entry: path.join(__dirname, '../../bot/DiscordWebhookHandler.ts'),
       role: webHookFunctionRole,
       functionName: 'discordBot-webhookFunction',
       environment: {
         ...commonDiscordLambdaProperties.environment,
         ACTION_LAMBDA_FUNCTIONNAME: this.discordActionFunction.functionName
-      }
+      },
+      memorySize: 512
     });
     // Allow action invokes from webhook function
     this.discordActionFunction.grantInvoke(this.discordWebhookFunction);

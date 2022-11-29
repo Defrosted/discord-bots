@@ -2,6 +2,8 @@
     "name": "discord_emoji_bot",
     "scripts": {
         "deploy:prod": "cross-env CDK_ENVIRONMENT=production cdk deploy",
+        "synth:prod": "cross-env CDK_ENVIRONMENT=production cdk synth",
+        "destroy:prod": "cross-env CDK_ENVIRONMENT=production cdk destroy",
         "lint": "eslint . --ext .ts",
         "test": "npx jest"
     },
