@@ -1,7 +1,5 @@
 {
   "compilerOptions": {
-    "baseUrl": ".",
-    "rootDir": ".",
     "strict": true,
     "outDir": "bin/code",
     "target": "es2016",
@@ -15,11 +13,7 @@
     "forceConsistentCasingInFileNames": true,
     "esModuleInterop": false,
     "paths": {
-      "@ports/*": [ "./src/ports/*" ],
-      "@adapters/*": [ "./src/adapters/*" ],
-      "@services/*": [ "./src/services/*" ],
-      "@domain/*": [ "./src/domain/*" ],
-      "@config/*": [ "./src/config/*" ]
+      "@lib/*": ["./src/lib/*"]
     }
   }
 }
