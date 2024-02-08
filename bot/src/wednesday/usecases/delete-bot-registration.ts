@@ -1,6 +1,6 @@
 import { DiscordWebhookMessage } from '@lib/domain/discord-webhook-message';
 import { DiscordApiRepository } from '@lib/repositories/discord-api';
-import * as log from 'lambda-log';
+import logger from '@lib/util/logger';
 import * as R from 'ramda';
 import { BotConfigurationRepository } from '../repositories/bot-configuration';
 
@@ -18,7 +18,7 @@ export type DeleteBotRegistrationUsecase = (params: {
 export const makeDeleteBotRegistrationUsecase =
   (deps: Deps): DeleteBotRegistrationUsecase =>
   async (params) => {
-    log.info('Deleting bot configuration', R.omit(['token'], params));
+    logger.info('Deleting bot configuration', R.omit(['token'], params));
     await deps.botConfigurationRepository.delete(params);
 
     await deps.discordApiRepository.patchOriginalMessage({

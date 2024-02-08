@@ -1,6 +1,6 @@
 import { BotError, BotErrorType } from '@lib/errors/bot-error';
 import { DiscordInteractionOption } from '@lib/schemas/shared/discord';
-import * as log from 'lambda-log';
+import logger from '@lib/util/logger';
 import * as R from 'ramda';
 import { WednesdayConfigureSubCommands } from '../constants';
 import { DeleteBotRegistrationUsecase } from '../usecases/delete-bot-registration';
@@ -21,7 +21,7 @@ export type ConfigureBotUsecase = (params: {
 export const makeConfigureBotUsecase =
   (deps: Deps): ConfigureBotUsecase =>
   (params) => {
-    log.options.meta.params = R.omit(['token'], params);
+    logger.options.meta.params = R.omit(['token'], params);
 
     const subCommand = params.options.shift()?.name;
     if (!subCommand)

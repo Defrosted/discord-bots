@@ -2,8 +2,8 @@ import {
   SendWednesdayMemeInvocation,
   sendWednesdayMemeInvocationSchema,
 } from '@lib/schemas/events/wednesday-bot';
+import logger from '@lib/util/logger';
 import { makeRecordValidator } from '@lib/util/record-validator';
-import * as log from 'lambda-log';
 import * as R from 'ramda';
 import { Config } from 'sst/node/config';
 import { Table } from 'sst/node/table';
@@ -31,7 +31,7 @@ export const makeHandler = (deps: Deps) => async (event: unknown) => {
   try {
     return await R.pipe(validateEvent, toParams, deps.sendWednesdayMeme)(event);
   } catch (error) {
-    log.error('Failed to send wednesday meme', { error });
+    logger.error('Failed to send wednesday meme', { error });
   }
 };
 

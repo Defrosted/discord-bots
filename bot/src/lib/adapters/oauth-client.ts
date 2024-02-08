@@ -39,7 +39,6 @@ export const makeOauthHttpClient = (deps: Deps): OAuthClient => {
       Authorization: `Basic ${Buffer.from(authString).toString('base64')}`,
     };
     if (deps.userAgent) headers['User-Agent'] = deps.userAgent;
-
     const authResponse = await deps.httpRequestClient.post<AuthResponse>(
       deps.authUrl,
       {

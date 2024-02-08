@@ -1,6 +1,6 @@
 import { DiscordWebhookMessage } from '@lib/domain/discord-webhook-message';
 import { DiscordApiRepository } from '@lib/repositories/discord-api';
-import * as log from 'lambda-log';
+import logger from '@lib/util/logger';
 import * as R from 'ramda';
 import { BotConfiguration } from '../domain/bot-configuration';
 import { BotConfigurationRepository } from '../repositories/bot-configuration';
@@ -19,7 +19,7 @@ export type RegisterBotScheduleUsecase = (params: {
 export const makeRegisterBotScheduleUsecase =
   (deps: Deps): RegisterBotScheduleUsecase =>
   async (params) => {
-    log.info('Registering bot configuration', R.omit(['token'], params));
+    logger.info('Registering bot configuration', R.omit(['token'], params));
     await deps.botConfigurationRepository.put(new BotConfiguration(params));
 
     await deps.discordApiRepository.patchOriginalMessage({

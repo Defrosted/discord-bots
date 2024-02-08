@@ -50,11 +50,11 @@ export const makeHttpRequestHandler =
             logDetails: error.response.data,
           });
         case 401:
-          throw new BotError(BotErrorType.GenericForbiddenError, {
+          throw new BotError(BotErrorType.GenericUnauthorizedError, {
             logDetails: error.response.data,
           });
         case 403:
-          throw new BotError(BotErrorType.GenericUnauthorizedError, {
+          throw new BotError(BotErrorType.GenericForbiddenError, {
             logDetails: error.response.data,
           });
         case 404:

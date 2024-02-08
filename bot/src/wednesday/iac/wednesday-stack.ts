@@ -20,10 +20,10 @@ export function WednesdayStack({ stack }: StackContext) {
     value: 'https://www.reddit.com/api/v1/access_token',
   });
   const redditApiUrl = new Config.Parameter(stack, 'REDDIT_API_URL', {
-    value: 'https://oauth.reddit.com/r/ItIsWednesday/random',
+    value: 'https://oauth.reddit.com/r/ItIsWednesday',
   });
   const redditUserAgent = new Config.Parameter(stack, 'REDDIT_USER_AGENT', {
-    value: 'aws:wednesday-bot:v1.0.0 (by /u/Lambda256)',
+    value: `aws:wednesday-bot:v1.0.0-${stack.stage} (by /u/Lambda256)`,
   });
   const redditClientId = new Config.Secret(stack, 'REDDIT_CLIENT_ID');
   const redditClientSecret = new Config.Secret(stack, 'REDDIT_CLIENT_SECRET');

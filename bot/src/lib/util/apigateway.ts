@@ -1,11 +1,11 @@
 import { BotError } from '@lib/errors/bot-error';
+import logger from '@lib/util/logger';
 import {
   APIGatewayEvent,
   APIGatewayProxyEvent,
   APIGatewayProxyResult,
   APIGatewayProxyResultV2,
 } from 'aws-lambda';
-import * as log from 'lambda-log';
 
 export interface RequestParams {
   path?: Record<string, unknown>;
@@ -51,7 +51,7 @@ export const makeApiGatewayProxyHandler =
     try {
       return await handler(event);
     } catch (error) {
-      log.error('Failed to execute handler', { error });
+      logger.error('Failed to execute handler', { error });
 
       if (error instanceof BotError) {
         return {

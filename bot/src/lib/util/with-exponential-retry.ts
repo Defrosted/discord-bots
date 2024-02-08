@@ -1,4 +1,4 @@
-import * as log from 'lambda-log';
+import logger from '@lib/util/logger';
 
 const timeoutMs = (ms: number) =>
   new Promise((resolve) => setTimeout(resolve, ms));
@@ -29,7 +29,7 @@ export const makeWithExponentialRetry = ({
     try {
       return await fn();
     } catch (error) {
-      log.debug(
+      logger.debug(
         `Retry handler errored, attempt ${retryCount + 1} of ${maxRetries + 1}`,
       );
 

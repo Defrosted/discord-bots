@@ -1,6 +1,6 @@
 import { configureBotInvocationSchema } from '@lib/schemas/events/wednesday-bot';
+import logger from '@lib/util/logger';
 import { makeRecordValidator } from '@lib/util/record-validator';
-import * as log from 'lambda-log';
 import * as R from 'ramda';
 import { Config } from 'sst/node/config';
 import { Table } from 'sst/node/table';
@@ -18,7 +18,7 @@ export const makeHandler = (deps: Deps) => async (event: unknown) => {
   try {
     return await R.pipe(validateEvent, deps.configureBot)(event);
   } catch (error) {
-    log.error('Failed to configure bot', { error });
+    logger.error('Failed to configure bot', { error });
   }
 };
 

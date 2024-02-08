@@ -17,13 +17,18 @@ export const redditPostSchema = z.object({
 });
 export type RedditPost = z.infer<typeof redditPostSchema>;
 
-export const redditListingResponseSchema = z.array(
-  z.object({
-    kind: z.string(),
-    data: z.object({
-      children: z.array(redditPostSchema),
-    }),
+export const redditRandomListingSchema = z.object({
+  kind: z.string(),
+  data: z.object({
+    children: z.array(redditPostSchema),
   }),
-);
+});
+export type RedditRandomListing = z.infer<typeof redditRandomListingSchema>;
+
+export const redditListingResponseSchema = redditRandomListingSchema.extend({
+  data: z.object({
+    children: z.array(redditPostSchema),
+  }),
+});
 
 export type RedditListingResponse = z.infer<typeof redditListingResponseSchema>;
