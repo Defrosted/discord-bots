@@ -27,7 +27,7 @@ export type SendWednesdayMemeUsecase = (
 export const makeSendWednesdayMemeUsecase =
   (deps: Deps): SendWednesdayMemeUsecase =>
   async (params) => {
-    logger.options.meta.params = R.omit(['token'], params);
+    logger.options.meta.params = params ? R.omit(['token'], params) : undefined;
 
     const message = new DiscordWebhookMessage({
       content: 'It is Wednesday my dudes!',

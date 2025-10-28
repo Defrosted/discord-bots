@@ -8,10 +8,9 @@ import {
 } from '@lib/util/apigateway';
 import { VerifyApiGwEventDiscordSignature } from '@lib/util/discord-signature';
 import { makeRecordValidator } from '@lib/util/record-validator';
-import { APIGatewayProxyEvent } from 'aws-lambda';
+import { APIGatewayProxyEventV2 } from 'aws-lambda';
 import * as R from 'ramda';
-import { Config } from 'sst/node/config';
-import { Function } from 'sst/node/function';
+import { getConfig } from '../../config';
 import { injectRouteDiscordWebhookActionUsecase } from '../../di';
 import { RouteDiscordWebhookActionUsecase } from '../../usecases/route-discord-webhook-action';
 
@@ -24,7 +23,7 @@ const validateParams = (params: RequestParams) =>
   makeRecordValidator(routeDiscordWebhookRequestSchema)(params.body);
 
 export const makeHandler = (deps: Deps) =>
-  makeApiGatewayProxyHandler((event: APIGatewayProxyEvent) => {
+  makeApiGatewayProxyHandler((event: APIGatewayProxyEventV2) => {
     deps.verifyEventSignature(event);
 
     return R.pipe(
@@ -35,17 +34,8 @@ export const makeHandler = (deps: Deps) =>
     )(event);
   });
 
-const getConfig = () => ({
-  region: Config.REGION,
-  discordApiUrl: Config.DISCORD_API_URL,
-  discordPublicKey: Config.DISCORD_PUBLIC_KEY,
-  sendWednesdayMemeFunctionName:
-    Function.SendWednesdayMemeFunction.functionName,
-  configureWednesdayFunctionName: Function.ConfigureBotFunction.functionName,
-});
-
+const config = getConfig();
 export const handler = makeHandler({
-  verifyEventSignature: injectVerifyApiGwEventDiscordSignature(getConfig()),
-  routeDiscordWebhookAction:
-    injectRouteDiscordWebhookActionUsecase(getConfig()),
+  verifyEventSignature: injectVerifyApiGwEventDiscordSignature(config),
+  routeDiscordWebhookAction: injectRouteDiscordWebhookActionUsecase(config),
 });

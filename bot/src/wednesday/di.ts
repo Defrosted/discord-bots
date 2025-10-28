@@ -15,13 +15,13 @@ import { makeSendWednesdayMemeUsecase } from './usecases/send-wednesday-meme';
 /* Repositories */
 export const injectBotCommandRepository = (config: {
   region: string;
-  sendWednesdayMemeFunctionName: string;
-  configureWednesdayFunctionName: string;
+  configureWednesdayFnName: string;
+  sendWednesdayMemeFnName: string;
 }) =>
   makeBotCommandRepository({
     lambdaClient: injectLambdaClient(config),
-    sendWednesdayMemeFunctionName: config.sendWednesdayMemeFunctionName,
-    configureWednesdayFunctionName: config.configureWednesdayFunctionName,
+    configureWednesdayFunctionName: config.configureWednesdayFnName,
+    sendWednesdayMemeFunctionName: config.sendWednesdayMemeFnName,
   });
 export const injectBotConfigurationRepository = (config: {
   region: string;
@@ -35,8 +35,8 @@ export const injectBotConfigurationRepository = (config: {
 /* Usecases */
 export const injectRouteDiscordWebhookActionUsecase = (config: {
   region: string;
-  sendWednesdayMemeFunctionName: string;
-  configureWednesdayFunctionName: string;
+  configureWednesdayFnName: string;
+  sendWednesdayMemeFnName: string;
 }) =>
   makeRouteDiscordWebhookActionUsecase({
     botCommandRepository: injectBotCommandRepository(config),

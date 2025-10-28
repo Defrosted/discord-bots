@@ -23,7 +23,7 @@ export const makeRouteDiscordWebhookActionUsecase =
   async (interaction) => {
     logger.info(
       'Processing discord webhook action',
-      R.omit(['token'], { interaction }),
+      R.omit(['token'], interaction),
     );
 
     if (interaction.type === DiscordInteractionType.PING) {

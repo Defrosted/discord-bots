@@ -1,11 +1,6 @@
 import { BotError } from '@lib/errors/bot-error';
 import logger from '@lib/util/logger';
-import {
-  APIGatewayEvent,
-  APIGatewayProxyEvent,
-  APIGatewayProxyResult,
-  APIGatewayProxyResultV2,
-} from 'aws-lambda';
+import { APIGatewayProxyEventV2, APIGatewayProxyResultV2 } from 'aws-lambda';
 
 export interface RequestParams {
   path?: Record<string, unknown>;
@@ -13,12 +8,14 @@ export interface RequestParams {
   body?: Record<string, unknown>;
 }
 
-export const parseApiGwBody = (event: APIGatewayEvent) =>
+export const parseApiGwBody = (event: APIGatewayProxyEventV2) =>
   event.isBase64Encoded && event.body
     ? Buffer.from(event.body, 'base64').toString()
-    : event.body ?? undefined;
+    : (event.body ?? undefined);
 
-export const parseApiGwEvent = (event: APIGatewayEvent): RequestParams => {
+export const parseApiGwEvent = (
+  event: APIGatewayProxyEventV2,
+): RequestParams => {
   const stringBody = parseApiGwBody(event);
 
   return {
@@ -32,8 +29,8 @@ export const parseApiGwEvent = (event: APIGatewayEvent): RequestParams => {
 
 export const toSuccessResponse = async (
   data: Promise<unknown>,
-): Promise<APIGatewayProxyResult> => {
-  return {
+): Promise<APIGatewayProxyResultV2> => {
+  const response = {
     statusCode: 200,
     isBase64Encoded: false,
     headers: {
@@ -41,13 +38,17 @@ export const toSuccessResponse = async (
     },
     body: data ? JSON.stringify(await data) : '',
   };
+  logger.info('Sending success response', response);
+  return response;
 };
 
 export const makeApiGatewayProxyHandler =
   (
-    handler: (event: APIGatewayProxyEvent) => Promise<APIGatewayProxyResultV2>,
+    handler: (
+      event: APIGatewayProxyEventV2,
+    ) => Promise<APIGatewayProxyResultV2>,
   ) =>
-  async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResultV2> => {
+  async (event: APIGatewayProxyEventV2): Promise<APIGatewayProxyResultV2> => {
     try {
       return await handler(event);
     } catch (error) {

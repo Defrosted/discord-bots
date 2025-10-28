@@ -1,106 +1,170 @@
-import { Api, Config, Cron, Function, Table } from 'sst/constructs';
-import { StackContext } from 'sst/constructs/FunctionalStack';
+import { Stack, StackProps } from 'aws-cdk-lib';
+import { LambdaIntegration, RestApi } from 'aws-cdk-lib/aws-apigateway';
+import { AttributeType, BillingMode, Table } from 'aws-cdk-lib/aws-dynamodb';
+import { Rule, Schedule } from 'aws-cdk-lib/aws-events';
+import { LambdaFunction } from 'aws-cdk-lib/aws-events-targets';
+import { Runtime } from 'aws-cdk-lib/aws-lambda';
+import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
+import { Secret } from 'aws-cdk-lib/aws-secretsmanager';
+import { StringParameter } from 'aws-cdk-lib/aws-ssm';
+import { Construct } from 'constructs';
+import z from 'zod';
+import { WednesdayBotConfig } from '../config';
+import path = require('node:path');
 
-export function WednesdayStack({ stack }: StackContext) {
-  const region = new Config.Parameter(stack, 'REGION', {
-    value: stack.region,
-  });
+export const wednesdayPropsSchema = z.object({
+  stage: z.string(),
+});
+export type WednesdayProps = StackProps & z.infer<typeof wednesdayPropsSchema>;
 
-  const discordApiUrl = new Config.Parameter(stack, 'DISCORD_API_URL', {
-    value: 'https://discord.com/api',
-  });
-  const discordApplicationId = new Config.Secret(
-    stack,
-    'DISCORD_APPLICATION_ID',
-  );
-  const discordAuthToken = new Config.Secret(stack, 'DISCORD_AUTH_TOKEN');
-  const discordPublicKey = new Config.Secret(stack, 'DISCORD_PUBLIC_KEY');
+export class WednesdayStack extends Stack {
+  constructor(scope: Construct, id: string, props: WednesdayProps) {
+    super(scope, id, props);
 
-  const redditAuthUrl = new Config.Parameter(stack, 'REDDIT_AUTH_URL', {
-    value: 'https://www.reddit.com/api/v1/access_token',
-  });
-  const redditApiUrl = new Config.Parameter(stack, 'REDDIT_API_URL', {
-    value: 'https://oauth.reddit.com/r/ItIsWednesday',
-  });
-  const redditUserAgent = new Config.Parameter(stack, 'REDDIT_USER_AGENT', {
-    value: `aws:wednesday-bot:v1.0.0-${stack.stage} (by /u/Lambda256)`,
-  });
-  const redditClientId = new Config.Secret(stack, 'REDDIT_CLIENT_ID');
-  const redditClientSecret = new Config.Secret(stack, 'REDDIT_CLIENT_SECRET');
+    const discordApiUrl = new StringParameter(
+      this,
+      'Parameter-Discord-ApiUrl',
+      {
+        parameterName: '/wednesday/discord/apiUrl',
+        stringValue: 'https://discord.com/api',
+      },
+    );
+    const discordApplicationId = new Secret(this, 'Secret-Discord-AppId', {
+      secretName: 'wednesday/discord/appId',
+    });
 
-  const botConfigurationTable = new Table(stack, 'BotConfiguration', {
-    fields: {
-      serverId: 'string',
-      channelId: 'string',
-    },
-    primaryIndex: {
-      partitionKey: 'serverId',
-      sortKey: 'channelId',
-    },
-  });
+    const discordAuthToken = new Secret(this, 'Secret-Discord-AuthToken', {
+      secretName: 'wednesday/discord/authToken',
+    });
+    const discordPublicKey = new Secret(this, 'Secret-Discord-PublicKey', {
+      secretName: 'wednesday/discord/publicKey',
+    });
 
-  const configureBotFunction = new Function(stack, 'ConfigureBotFunction', {
-    functionName: `configure-bot-${stack.stage}`,
-    handler: 'bot/src/wednesday/entrypoints/events/configure-bot.handler',
-    bind: [
-      region,
-      discordApiUrl,
-      discordApplicationId,
-      discordAuthToken,
-      botConfigurationTable,
-    ],
-  });
+    const redditAuthUrl = new StringParameter(
+      this,
+      'Parameter-Reddit-AuthUrl',
+      {
+        parameterName: '/wednesday/reddit/authUrl',
+        stringValue: 'https://www.reddit.com/api/v1/access_token',
+      },
+    );
+    const redditApiUrl = new StringParameter(this, 'Parameter-Reddit-ApiUrl', {
+      parameterName: '/wednesday/reddit/apiUrl',
+      stringValue: 'https://oauth.reddit.com/r/ItIsWednesday',
+    });
+    const redditUserAgent = new StringParameter(
+      this,
+      'Parameter-Reddit-UserAgent',
+      {
+        parameterName: '/wednesday/reddit/userAgent',
+        stringValue: `aws:wednesday-bot:v1.0.0-${props.stage} (by /u/Lambda256)`,
+      },
+    );
+    const redditClientId = new Secret(this, 'Secret-Reddit-ClientId', {
+      secretName: 'wednesday/reddit/clientId',
+    });
+    const redditClientSecret = new Secret(this, 'Secret-Reddit-ClientSecret', {
+      secretName: 'wednesday/reddit/clientSecret',
+    });
 
-  const sendWednesdayMemeFunction = new Function(
-    stack,
-    'SendWednesdayMemeFunction',
-    {
-      functionName: `send-wednesday-meme-${stack.stage}`,
-      handler:
-        'bot/src/wednesday/entrypoints/events/send-wednesday-meme.handler',
-      bind: [
-        region,
-        discordApiUrl,
-        discordApplicationId,
-        discordAuthToken,
-        botConfigurationTable,
-        redditApiUrl,
-        redditAuthUrl,
-        redditClientId,
-        redditClientSecret,
-        redditUserAgent,
-      ],
-    },
-  );
-  new Cron(stack, 'SendWednesdayMemeCronJob', {
-    schedule: 'cron(0 0 ? * WED *)',
-    job: sendWednesdayMemeFunction,
-  });
+    const botConfigurationTable = new Table(this, 'Table-BotConfiguration', {
+      tableName: `wednesday-bot-registrations-${props.stage}`,
+      billingMode: BillingMode.PAY_PER_REQUEST,
+      partitionKey: {
+        name: 'serverId',
+        type: AttributeType.STRING,
+      },
+      sortKey: {
+        name: 'channelId',
+        type: AttributeType.STRING,
+      },
+      pointInTimeRecoverySpecification: {
+        pointInTimeRecoveryEnabled: true,
+      },
+    });
 
-  const routeDiscordWebHookFunction = new Function(
-    stack,
-    'RouteDiscordWebhookActionFunction',
-    {
-      functionName: `route-discord-webhook-action-${stack.stage}`,
-      handler:
-        'bot/src/wednesday/entrypoints/rest/route-discord-webhook-action.handler',
-      bind: [
-        region,
-        discordApiUrl,
-        discordPublicKey,
-        configureBotFunction,
-        sendWednesdayMemeFunction,
-      ],
-    },
-  );
+    const configureWednesdayFnName = `wednesday-configure-bot-${props.stage}`;
+    const sendWednesdayMemeFnName = `wednesday-send-meme-${props.stage}`;
 
-  const api = new Api(stack, 'WednesdayBotAPI', {
-    routes: {
-      'POST /discord': routeDiscordWebHookFunction,
-    },
-  });
+    const functionEnv: WednesdayBotConfig = {
+      region: this.region,
+      discordApiUrl: discordApiUrl.stringValue,
+      discordApplicationId: discordApplicationId.secretValue.toString(),
+      discordAuthToken: discordAuthToken.secretValue.toString(),
+      discordPublicKey: discordPublicKey.secretValue.toString(),
+      botConfigurationTableName: botConfigurationTable.tableName,
+      redditClientId: redditClientId.secretValue.toString(),
+      redditClientSecret: redditClientSecret.secretValue.toString(),
+      redditAuthUrl: redditAuthUrl.stringValue,
+      redditApiUrl: redditApiUrl.stringValue,
+      redditUserAgent: redditUserAgent.stringValue,
+      configureWednesdayFnName,
+      sendWednesdayMemeFnName,
+    };
 
-  stack.addOutputs({
-    ApiUrl: api.url,
-  });
+    const configureWednesdayBotFunction = new NodejsFunction(
+      this,
+      'Function-ConfigureBot',
+      {
+        functionName: configureWednesdayFnName,
+        runtime: Runtime.NODEJS_22_X,
+        environment: functionEnv,
+        memorySize: 512,
+        entry: path.join(__dirname, '../entrypoints/events/configure-bot.ts'),
+        description: new Date().toISOString(), // Refresh on every deployment
+      },
+    );
+    botConfigurationTable.grantReadWriteData(configureWednesdayBotFunction);
+
+    const sendWednesdayMemeFunction = new NodejsFunction(
+      this,
+      'Function-SendWednesdayMeme',
+      {
+        functionName: `wednesday-send-meme-${props.stage}`,
+        runtime: Runtime.NODEJS_22_X,
+        environment: functionEnv,
+        memorySize: 512,
+        entry: path.join(
+          __dirname,
+          '../entrypoints/events/send-wednesday-meme.ts',
+        ),
+        description: new Date().toISOString(), // Refresh on every deployment
+      },
+    );
+    botConfigurationTable.grantReadData(sendWednesdayMemeFunction);
+
+    new Rule(this, 'Rule-SendWednesdayMemeCron', {
+      schedule: Schedule.expression('cron(0 0 ? * WED *)'),
+      targets: [new LambdaFunction(sendWednesdayMemeFunction)],
+    });
+
+    const routeDiscordWebHookFunction = new NodejsFunction(
+      this,
+      'Function-RouteDiscordWebhookAction',
+      {
+        functionName: `wednesday-route-discord-webhook-action-${props.stage}`,
+        runtime: Runtime.NODEJS_22_X,
+        memorySize: 1024,
+        environment: functionEnv,
+        entry: path.join(
+          __dirname,
+          '../entrypoints/rest/route-discord-webhook-action.ts',
+        ),
+        description: new Date().toISOString(), // Refresh on every deployment
+      },
+    );
+    sendWednesdayMemeFunction.grantInvoke(routeDiscordWebHookFunction);
+    configureWednesdayBotFunction.grantInvoke(routeDiscordWebHookFunction);
+
+    const api = new RestApi(this, 'API-WednesdayBot', {
+      restApiName: `wednesday-bot-api-${props.stage}`,
+      cloudWatchRole: true,
+      deploy: true,
+    });
+    const discordRoute = api.root.addResource('discord');
+    discordRoute.addMethod(
+      'POST',
+      new LambdaIntegration(routeDiscordWebHookFunction, { proxy: true }),
+    );
+  }
 }

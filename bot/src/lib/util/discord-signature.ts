@@ -1,5 +1,6 @@
 import { BotError, BotErrorType } from '@lib/errors/bot-error';
-import { APIGatewayProxyEvent } from 'aws-lambda';
+import logger from '@lib/util/logger';
+import { APIGatewayProxyEventV2 } from 'aws-lambda';
 import * as R from 'ramda';
 import * as nacl from 'tweetnacl';
 import { z } from 'zod';
@@ -42,10 +43,13 @@ export const makeDiscordSignatureVerifier =
       Buffer.from(deps.discordPublicKey, 'hex'),
     );
 
-    if (!isVerified) throw new BotError(BotErrorType.InvalidSignatureError);
+    if (!isVerified) {
+      logger.error('Failed to verify signature', params);
+      throw new BotError(BotErrorType.InvalidSignatureError);
+    }
   };
 
-export const apiGwEventtoSignatureParams = (event: APIGatewayProxyEvent) =>
+export const apiGwEventtoSignatureParams = (event: APIGatewayProxyEventV2) =>
   validateSignatureVerifierParams({
     signature:
       event.headers['X-Signature-Ed25519'] ??
@@ -57,7 +61,7 @@ export const apiGwEventtoSignatureParams = (event: APIGatewayProxyEvent) =>
   });
 
 export type VerifyApiGwEventDiscordSignature = (
-  event: APIGatewayProxyEvent,
+  event: APIGatewayProxyEventV2,
 ) => void;
 
 export const makeVerifyApiGwEventDiscordSignature =
