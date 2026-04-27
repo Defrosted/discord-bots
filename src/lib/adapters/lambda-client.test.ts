@@ -1,20 +1,13 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-
-const mockSend = vi.hoisted(() => vi.fn());
-
-vi.mock('@aws-sdk/client-lambda', () => ({
-  LambdaClient: vi.fn().mockImplementation(() => ({ send: mockSend })),
-  InvokeCommand: vi.fn().mockImplementation((input) => input),
-  InvocationType: { Event: 'Event', RequestResponse: 'RequestResponse' },
-}));
-
-import { InvokeCommand } from '@aws-sdk/client-lambda';
+import { LambdaClient } from '@aws-sdk/client-lambda';
 import { makeLambdaClient } from './lambda-client';
+
+const mockSend = vi.fn();
+vi.spyOn(LambdaClient.prototype, 'send').mockImplementation(mockSend);
 
 describe('makeLambdaClient', () => {
   beforeEach(() => {
     mockSend.mockReset();
-    vi.mocked(InvokeCommand).mockClear();
   });
 
   describe('invoke', () => {
@@ -25,8 +18,8 @@ describe('makeLambdaClient', () => {
 
       await client.invoke({ FunctionName: 'my-fn', Payload: payload });
 
-      expect(vi.mocked(InvokeCommand)).toHaveBeenCalledWith(
-        expect.objectContaining({ Payload: JSON.stringify(payload) }),
+      expect(mockSend).toHaveBeenCalledWith(
+        expect.objectContaining({ input: expect.objectContaining({ Payload: JSON.stringify(payload) }) }),
       );
     });
 
@@ -57,8 +50,8 @@ describe('makeLambdaClient', () => {
 
       await client.invoke({ FunctionName: 'my-fn', Payload: {} });
 
-      expect(vi.mocked(InvokeCommand)).toHaveBeenCalledWith(
-        expect.objectContaining({ InvocationType: 'RequestResponse' }),
+      expect(mockSend).toHaveBeenCalledWith(
+        expect.objectContaining({ input: expect.objectContaining({ InvocationType: 'RequestResponse' }) }),
       );
     });
 
@@ -72,8 +65,8 @@ describe('makeLambdaClient', () => {
         InvocationType: 'Event' as never,
       });
 
-      expect(vi.mocked(InvokeCommand)).toHaveBeenCalledWith(
-        expect.objectContaining({ InvocationType: 'Event' }),
+      expect(mockSend).toHaveBeenCalledWith(
+        expect.objectContaining({ input: expect.objectContaining({ InvocationType: 'Event' }) }),
       );
     });
 
@@ -83,8 +76,8 @@ describe('makeLambdaClient', () => {
 
       await client.invoke({ FunctionName: 'my-specific-fn', Payload: {} });
 
-      expect(vi.mocked(InvokeCommand)).toHaveBeenCalledWith(
-        expect.objectContaining({ FunctionName: 'my-specific-fn' }),
+      expect(mockSend).toHaveBeenCalledWith(
+        expect.objectContaining({ input: expect.objectContaining({ FunctionName: 'my-specific-fn' }) }),
       );
     });
   });

@@ -1,23 +1,9 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-
-const mockSend = vi.hoisted(() => vi.fn());
-
-vi.mock('@aws-sdk/client-dynamodb', () => ({
-  DynamoDBClient: vi.fn().mockImplementation(() => ({})),
-}));
-
-vi.mock('@aws-sdk/lib-dynamodb', () => ({
-  DynamoDBDocumentClient: {
-    from: vi.fn().mockImplementation(() => ({ send: mockSend })),
-  },
-  ScanCommand: vi.fn().mockImplementation((input) => ({ _type: 'Scan', ...input })),
-  QueryCommand: vi.fn().mockImplementation((input) => ({ _type: 'Query', ...input })),
-  GetCommand: vi.fn().mockImplementation((input) => ({ _type: 'Get', ...input })),
-  PutCommand: vi.fn().mockImplementation((input) => ({ _type: 'Put', ...input })),
-  DeleteCommand: vi.fn().mockImplementation((input) => ({ _type: 'Delete', ...input })),
-}));
-
+import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import { makeDynamoDbClient } from './dynamodb-client';
+
+const mockSend = vi.fn();
+vi.spyOn(DynamoDBDocumentClient.prototype, 'send').mockImplementation(mockSend);
 
 describe('makeDynamoDbClient', () => {
   beforeEach(() => {
