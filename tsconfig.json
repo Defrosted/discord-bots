@@ -12,9 +12,9 @@
     "noFallthroughCasesInSwitch": true,
     "noImplicitReturns": true,
     "forceConsistentCasingInFileNames": true,
-    "esModuleInterop": false,
     "paths": {
       "@lib/*": ["./src/lib/*"]
-    }
+    },
+    "types": ["node"]
   }
 }
