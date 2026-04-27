@@ -3,7 +3,7 @@ import { z } from 'zod';
 
 export const makeRecordValidator =
   <T>(
-    schema: z.Schema<T> | z.ZodEffects<z.Schema<T>>,
+    schema: z.ZodType<T>,
     errorType = BotErrorType.InvalidInputError,
   ) =>
   (data: Partial<z.infer<z.Schema<T>>> | unknown) => {
