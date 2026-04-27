@@ -14,7 +14,7 @@
     "forceConsistentCasingInFileNames": true,
     "esModuleInterop": false,
     "paths": {
-      "@lib/*": ["./bot/src/lib/*"]
+      "@lib/*": ["./src/lib/*"]
     }
   }
 }
