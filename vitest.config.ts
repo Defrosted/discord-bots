@@ -6,6 +6,16 @@ export default defineConfig({
     environment: 'node',
     setupFiles: ['dotenv/config'],
     exclude: ['bin/**', 'node_modules/**'],
+    coverage: {
+      exclude: [
+        '**/*.iac.ts',
+        '**/iac/**',
+        '**/di.ts',
+        '**/config.ts',
+        'bin/*.ts',
+        'vitest.config.ts',
+      ],
+    },
   },
   resolve: {
     alias: {
