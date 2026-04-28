@@ -13,7 +13,7 @@ const makeInteraction = (overrides = {}) => ({
   token: 'interaction-token',
   guild_id: 'server-123',
   channel_id: 'channel-456',
-  data: { name: 'cat', options: [] },
+  data: { name: 'cat', options: [{ name: 'image', type: 1, options: [] }] },
   ...overrides,
 });
 
@@ -47,11 +47,11 @@ describe('makeBotCommandRepository', () => {
       );
     });
 
-    test('includes tags in payload when a tags option is present', async () => {
+    test('includes tags in payload when a tags option is present on the subcommand', async () => {
       const lambdaClient = makeLambdaClient();
       const repo = makeBotCommandRepository({ lambdaClient, sendCatPhotoFunctionName: 'cat-fn' });
       const interaction = makeInteraction({
-        data: { name: 'cat', options: [{ name: 'tags', type: 3, value: 'cute' }] },
+        data: { name: 'cat', options: [{ name: 'image', type: 1, options: [{ name: 'tags', type: 3, value: 'cute' }] }] },
       });
 
       await repo.sendCatPhoto(interaction);
@@ -78,6 +78,64 @@ describe('makeBotCommandRepository', () => {
       const repo = makeBotCommandRepository({ lambdaClient, sendCatPhotoFunctionName: 'cat-fn' });
 
       await repo.sendCatPhoto(makeInteraction());
+
+      expect(lambdaClient.invoke).toHaveBeenCalledWith(
+        expect.objectContaining({ InvocationType: InvocationType.Event }),
+      );
+    });
+  });
+
+  describe('sendCatGif', () => {
+    test('invokes the send-cat-photo Lambda with the correct function name', async () => {
+      const lambdaClient = makeLambdaClient();
+      const repo = makeBotCommandRepository({ lambdaClient, sendCatPhotoFunctionName: 'cat-fn' });
+
+      await repo.sendCatGif(makeInteraction());
+
+      expect(lambdaClient.invoke).toHaveBeenCalledWith(
+        expect.objectContaining({ FunctionName: 'cat-fn' }),
+      );
+    });
+
+    test('passes token, channelId, serverId, and gif tag when no user tags provided', async () => {
+      const lambdaClient = makeLambdaClient();
+      const repo = makeBotCommandRepository({ lambdaClient, sendCatPhotoFunctionName: 'cat-fn' });
+
+      await repo.sendCatGif(makeInteraction());
+
+      expect(lambdaClient.invoke).toHaveBeenCalledWith(
+        expect.objectContaining({
+          Payload: expect.objectContaining({
+            token: 'interaction-token',
+            channelId: 'channel-456',
+            serverId: 'server-123',
+            tags: 'gif',
+          }),
+        }),
+      );
+    });
+
+    test('prepends gif to user-provided tags', async () => {
+      const lambdaClient = makeLambdaClient();
+      const repo = makeBotCommandRepository({ lambdaClient, sendCatPhotoFunctionName: 'cat-fn' });
+      const interaction = makeInteraction({
+        data: { name: 'cat', options: [{ name: 'gif', type: 1, options: [{ name: 'tags', type: 3, value: 'orange' }] }] },
+      });
+
+      await repo.sendCatGif(interaction);
+
+      expect(lambdaClient.invoke).toHaveBeenCalledWith(
+        expect.objectContaining({
+          Payload: expect.objectContaining({ tags: 'gif,orange' }),
+        }),
+      );
+    });
+
+    test('uses Event invocation type', async () => {
+      const lambdaClient = makeLambdaClient();
+      const repo = makeBotCommandRepository({ lambdaClient, sendCatPhotoFunctionName: 'cat-fn' });
+
+      await repo.sendCatGif(makeInteraction());
 
       expect(lambdaClient.invoke).toHaveBeenCalledWith(
         expect.objectContaining({ InvocationType: InvocationType.Event }),

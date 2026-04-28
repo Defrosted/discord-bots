@@ -10,20 +10,29 @@ interface Deps {
   cataasApiUrl: string;
 }
 
+export interface CatFile {
+  id: string;
+  bytes: Blob;
+}
+
 export interface CataasApiRepository {
-  getRandomCatPhotoUrl: (tags?: string) => Promise<string>;
+  getRandomCatFile: (tags?: string) => Promise<CatFile>;
 }
 
 export const makeCataasApiRepository = (deps: Deps): CataasApiRepository => ({
-  getRandomCatPhotoUrl: async (tags) => {
+  getRandomCatFile: async (tags) => {
     const path = tags ? `/cat/${encodeURIComponent(tags)}` : '/cat';
     try {
       const response = await deps.httpRequestClient.get<unknown>(
         `${deps.cataasApiUrl}${path}?json=true`,
         {},
       );
-      const cat = makeRecordValidator(cataasApiCatSchema)(response);
-      return `${deps.cataasApiUrl}/cat/${cat.id}`;
+      const { id } = makeRecordValidator(cataasApiCatSchema)(response);
+      const buffer = await deps.httpRequestClient.get<ArrayBuffer>(
+        `${deps.cataasApiUrl}/cat/${id}`,
+        { responseType: 'arraybuffer', headers: { Accept: 'image/*' } },
+      );
+      return { id, bytes: new Blob([buffer]) };
     } catch (error) {
       if (error instanceof BotError && error.errorType === BotErrorType.GenericNotFoundError && tags) {
         throw new BotError(BotErrorType.CatNotFoundForTagError);

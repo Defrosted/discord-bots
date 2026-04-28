@@ -61,15 +61,11 @@ export class DiscordWebhookMessage implements IDiscordWebhookMessage {
     const formData = new FormData();
 
     // Append content
-    formData.append(
-      'payload_json',
-      new Blob([JSON.stringify(this.getPayload())], {
-        type: 'application/json',
-      }),
-    );
+    formData.append('payload_json', JSON.stringify(this.getPayload()));
 
-    this.files?.forEach(({ bytes, filename }, index) => {
-      formData.append(`file[${index}]`, bytes, filename);
+    this.files?.forEach(({ bytes, filename, content_type }, index) => {
+      const blob = content_type ? new Blob([bytes], { type: content_type }) : bytes;
+      formData.append(`file[${index}]`, blob, filename);
     });
 
     return formData;
@@ -85,14 +81,15 @@ export interface DiscordWebhookMessageAttachment {
 export interface DiscordWebhookMessageFile {
   filename: string;
   bytes: Blob;
+  content_type?: string;
 }
 
 export type DiscordMessageEmbedTypeKeys = 'image' | 'video';
 
 export interface DiscordMessageEmbedObject {
-  title: string;
+  title?: string;
   url?: string;
-  description: string;
+  description?: string;
 }
 
 export type DiscordMessageEmbed = {

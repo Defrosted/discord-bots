@@ -1,5 +1,5 @@
 import { WithExponentialRetry } from '@lib/util/with-exponential-retry';
-import axios, { AxiosError } from 'axios';
+import axios, { AxiosError, ResponseType } from 'axios';
 import { BotError, BotErrorType } from '../errors/bot-error';
 
 export enum HttpMethod {
@@ -14,6 +14,7 @@ type BodylessHttpMethods = HttpMethod.GET;
 interface RequestParamsBase {
   headers?: Record<string, string>;
   params?: Record<string, unknown>;
+  responseType?: ResponseType;
 }
 
 export type HttpRequestParams<Method extends HttpMethod> =

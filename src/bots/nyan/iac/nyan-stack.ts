@@ -1,4 +1,4 @@
-import { Stack, StackProps } from 'aws-cdk-lib';
+import { Duration, Stack, StackProps } from 'aws-cdk-lib';
 import { LambdaIntegration, RestApi } from 'aws-cdk-lib/aws-apigateway';
 import { Runtime } from 'aws-cdk-lib/aws-lambda';
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
@@ -42,9 +42,15 @@ export class NyanStack extends Stack {
     const functionEnv: NyanBotConfig = {
       region: this.region,
       discordApiUrl: discordApiUrl.stringValue,
-      discordApplicationId: discordCredentials.secretValueFromJson('appId').toString(),
-      discordAuthToken: discordCredentials.secretValueFromJson('authToken').toString(),
-      discordPublicKey: discordCredentials.secretValueFromJson('publicKey').toString(),
+      discordApplicationId: discordCredentials
+        .secretValueFromJson('appId')
+        .toString(),
+      discordAuthToken: discordCredentials
+        .secretValueFromJson('authToken')
+        .toString(),
+      discordPublicKey: discordCredentials
+        .secretValueFromJson('publicKey')
+        .toString(),
       cataasApiUrl: cataasApiUrl.stringValue,
       sendCatPhotoFnName,
     };
@@ -59,6 +65,7 @@ export class NyanStack extends Stack {
         memorySize: 512,
         entry: path.join(__dirname, '../entrypoints/events/send-cat-photo.ts'),
         description: new Date().toISOString(),
+        timeout: Duration.seconds(10),
       },
     );
 

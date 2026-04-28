@@ -15,13 +15,35 @@ if (!appId || !botToken) {
 const commands = [
   {
     name: 'cat',
-    description: 'Get a random cat photo',
+    description: 'Get a random cat image or GIF',
     options: [
       {
-        name: 'tags',
-        description: 'Filter by tags (e.g. cute, funny)',
-        type: 3, // STRING
-        required: false,
+        name: 'image',
+        description: 'Get a random cat image',
+        type: 1, // SUB_COMMAND
+        options: [
+          {
+            name: 'tags',
+            description:
+              'Filter by tags separated by comma (e.g. "cute,funny")',
+            type: 3, // STRING
+            required: false,
+          },
+        ],
+      },
+      {
+        name: 'gif',
+        description: 'Get a random cat GIF',
+        type: 1, // SUB_COMMAND
+        options: [
+          {
+            name: 'tags',
+            description:
+              'Filter by tags separated by comma (e.g. "cute,funny")',
+            type: 3, // STRING
+            required: false,
+          },
+        ],
       },
     ],
   },

@@ -7,7 +7,7 @@ import { BotError, BotErrorType } from '@lib/errors/bot-error';
 import { DiscordInteraction } from '@lib/schemas/shared/discord';
 import logger from '@lib/util/logger';
 import * as R from 'ramda';
-import { NyanCommands } from '../constants';
+import { NyanCommands, NyanSubCommands } from '../constants';
 import { BotCommandRepository } from '../repositories/bot-command';
 
 export type RouteDiscordWebhookActionUsecase = (
@@ -35,13 +35,19 @@ export const makeRouteDiscordWebhookActionUsecase =
 
     const command = interaction.data?.name;
     switch (command) {
-      case NyanCommands.CAT:
-        await deps.botCommandRepository.sendCatPhoto(interaction);
-
-        logger.info('Invoked send cat photo function, returning initial message');
+      case NyanCommands.CAT: {
+        const subCommand = interaction.data?.options?.[0]?.name;
+        if (subCommand === NyanSubCommands.GIF) {
+          await deps.botCommandRepository.sendCatGif(interaction);
+          logger.info('Invoked send cat gif function, returning initial message');
+        } else {
+          await deps.botCommandRepository.sendCatPhoto(interaction);
+          logger.info('Invoked send cat photo function, returning initial message');
+        }
         return {
           type: DiscordInteractionReplyType.DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE,
         };
+      }
       default:
         throw new BotError(BotErrorType.CommandNotFoundError, {
           logDetails: interaction,
