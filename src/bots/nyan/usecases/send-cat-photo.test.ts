@@ -1,5 +1,6 @@
 import { describe, expect, test, vi } from 'vitest';
 import { DiscordWebhookMessage } from '@lib/domain/discord-webhook-message';
+import { BotError, BotErrorType } from '@lib/errors/bot-error';
 import { makeSendCatPhotoUsecase } from './send-cat-photo';
 
 const CAT_URL = 'https://cataas.com/cat/abc123';
@@ -82,5 +83,34 @@ describe('makeSendCatPhotoUsecase', () => {
     await usecase({ token: 'tok', channelId: 'ch1' });
 
     expect(deps.discordApiRepository.postMessageToChannel).not.toHaveBeenCalled();
+  });
+
+  test('fetches a random cat and sends a fallback message when no cat found for tag', async () => {
+    const FALLBACK_URL = 'https://cataas.com/cat/fallback';
+    const deps = makeDeps();
+    deps.cataasApiRepository.getRandomCatPhotoUrl
+      .mockRejectedValueOnce(new BotError(BotErrorType.CatNotFoundForTagError))
+      .mockResolvedValueOnce(FALLBACK_URL);
+    const usecase = makeSendCatPhotoUsecase(deps);
+
+    await usecase({ token: 'tok', channelId: 'ch1', tags: 'nonexistent' });
+
+    expect(deps.cataasApiRepository.getRandomCatPhotoUrl).toHaveBeenCalledTimes(2);
+    expect(deps.cataasApiRepository.getRandomCatPhotoUrl).toHaveBeenLastCalledWith();
+    const call = deps.discordApiRepository.patchOriginalMessage.mock.calls[0][0];
+    expect(call.message.content).toContain("No cats found with provided tag, here's another one instead");
+    expect(call.message.content).toContain(FALLBACK_URL);
+  });
+
+  test('rethrows non-tag-not-found errors', async () => {
+    const deps = makeDeps();
+    deps.cataasApiRepository.getRandomCatPhotoUrl.mockRejectedValue(
+      new BotError(BotErrorType.InfrastructureError),
+    );
+    const usecase = makeSendCatPhotoUsecase(deps);
+
+    await expect(usecase({ token: 'tok', channelId: 'ch1' })).rejects.toMatchObject({
+      errorType: BotErrorType.InfrastructureError,
+    });
   });
 });

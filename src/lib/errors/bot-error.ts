@@ -19,6 +19,7 @@ export enum BotErrorType {
   UnknownError = 'UnknownError',
   CommandNotFoundError = 'CommandNotFoundError',
   RandomRedditPostNotFoundError = 'RedditPostNotFoundError',
+  CatNotFoundForTagError = 'CatNotFoundForTagError',
 }
 
 interface ErrorAttributes {
@@ -72,6 +73,10 @@ export const botErrorParameters: Record<BotErrorType, ErrorAttributes> = {
     errorCode: BotErrorCode.NotFoundError,
     message: 'Random reddit post not found',
     isRetryable: true,
+  },
+  [BotErrorType.CatNotFoundForTagError]: {
+    errorCode: BotErrorCode.NotFoundError,
+    message: 'No cat found for the given tag',
   },
 };
 
