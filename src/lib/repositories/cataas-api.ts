@@ -15,9 +15,9 @@ export interface CataasApiRepository {
 
 export const makeCataasApiRepository = (deps: Deps): CataasApiRepository => ({
   getRandomCatPhotoUrl: async (tags) => {
-    const tagsQuery = tags ? `&tags=${encodeURIComponent(tags)}` : '';
+    const path = tags ? `/cat/${encodeURIComponent(tags)}` : '/cat';
     const response = await deps.httpRequestClient.get<unknown>(
-      `${deps.cataasApiUrl}/cat?json=true${tagsQuery}`,
+      `${deps.cataasApiUrl}${path}?json=true`,
       {},
     );
 

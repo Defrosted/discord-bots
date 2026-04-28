@@ -25,14 +25,14 @@ describe('makeCataasApiRepository', () => {
       );
     });
 
-    test('appends encoded tags to the query when tags provided', async () => {
+    test('uses tags as a path segment when tags provided', async () => {
       const httpRequestClient = makeHttpRequestClient();
       const repo = makeCataasApiRepository({ httpRequestClient, cataasApiUrl: CATAAS_API_URL });
 
       await repo.getRandomCatPhotoUrl('cute,funny');
 
       expect(httpRequestClient.get).toHaveBeenCalledWith(
-        `${CATAAS_API_URL}/cat?json=true&tags=cute%2Cfunny`,
+        `${CATAAS_API_URL}/cat/cute%2Cfunny?json=true`,
         expect.any(Object),
       );
     });
