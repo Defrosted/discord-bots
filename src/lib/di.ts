@@ -3,6 +3,7 @@ import { makeHttpRequestClient } from './adapters/http-client';
 import { makeLambdaClient } from './adapters/lambda-client';
 import { makeOauthHttpClient } from './adapters/oauth-client';
 import { makeSsmClient } from './adapters/ssm-client';
+import { makeCataasApiRepository } from './repositories/cataas-api';
 import { makeDiscordApiRepository } from './repositories/discord-api';
 import { makeRedditApiRepository } from './repositories/reddit-api';
 import {
@@ -55,6 +56,12 @@ export const injectDiscordApiRepository = (config: {
     discordApiUrl: config.discordApiUrl,
     applicationId: config.applicationId,
     authToken: config.authToken,
+  });
+
+export const injectCataasApiRepository = (config: { cataasApiUrl: string }) =>
+  makeCataasApiRepository({
+    httpRequestClient: injectHttpRequestClient(),
+    cataasApiUrl: config.cataasApiUrl,
   });
 
 export const injectRedditApiRepository = (config: {

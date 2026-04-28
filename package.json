@@ -15,7 +15,8 @@
   },
   "name": "discord_emoji_bot",
   "scripts": {
-    "deploy": "cdk deploy --all",
+    "deploy": "cdk deploy --require-approval never",
+    "register:nyan": "ts-node scripts/register-nyan-commands.ts",
     "lint": "eslint . --ext .ts",
     "test:unit": "vitest run",
     "test:coverage": "vitest run --coverage"

@@ -4,13 +4,21 @@ import {
   wednesdayPropsSchema,
   WednesdayStack,
 } from '../src/bots/wednesday/iac/wednesday-stack';
+import {
+  nyanPropsSchema,
+  NyanStack,
+} from '../src/bots/nyan/iac/nyan-stack';
 
-const props = makeRecordValidator(wednesdayPropsSchema)({
+const wednesdayProps = makeRecordValidator(wednesdayPropsSchema)({
+  stage: process.env.STAGE,
+});
+const nyanProps = makeRecordValidator(nyanPropsSchema)({
   stage: process.env.STAGE,
 });
 
 const app = new App();
-new WednesdayStack(app, `wednesday-bot-${props.stage}`, props);
+new WednesdayStack(app, `wednesday-bot-${wednesdayProps.stage}`, wednesdayProps);
+new NyanStack(app, `nyan-bot-${nyanProps.stage}`, nyanProps);
 
 Tags.of(app).add('app', 'bots');
-Tags.of(app).add('stage', props.stage);
+Tags.of(app).add('stage', wednesdayProps.stage);

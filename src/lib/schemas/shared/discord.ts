@@ -4,17 +4,18 @@ import { z } from 'zod';
 const baseInteractionOptionSchema = z.object({
   name: z.string(),
   type: z.number(),
+  value: z.unknown().optional(),
 });
 
 export const discordInteractionOptionSchema: z.ZodType<DiscordInteractionOption> =
   baseInteractionOptionSchema.extend({
-    options: z.lazy(() => discordInteractionOptionSchema.array()),
+    options: z.lazy(() => discordInteractionOptionSchema.array()).optional(),
   });
 
 export type DiscordInteractionOption = z.infer<
   typeof baseInteractionOptionSchema
 > & {
-  options: DiscordInteractionOption[];
+  options?: DiscordInteractionOption[];
 };
 
 export const discordInteractionSchema = z.object({
