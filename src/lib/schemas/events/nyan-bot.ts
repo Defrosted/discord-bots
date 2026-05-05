@@ -5,6 +5,7 @@ export const sendCatPhotoInvocationSchema = z.object({
   channelId: z.string(),
   serverId: z.string().optional(),
   tags: z.string().optional(),
+  text: z.string().optional(),
 });
 
 export type SendCatPhotoInvocation = z.infer<typeof sendCatPhotoInvocationSchema>;

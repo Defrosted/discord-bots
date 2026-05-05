@@ -35,6 +35,7 @@ describe('makeSendCatPhotoUsecase', () => {
 
     expect(deps.cataasApiRepository.getRandomCatFile).toHaveBeenCalledWith(
       'cute',
+      undefined,
     );
   });
 
@@ -46,6 +47,31 @@ describe('makeSendCatPhotoUsecase', () => {
 
     expect(deps.cataasApiRepository.getRandomCatFile).toHaveBeenCalledWith(
       undefined,
+      undefined,
+    );
+  });
+
+  test('passes text to getRandomCatFile when provided', async () => {
+    const deps = makeDeps();
+    const usecase = makeSendCatPhotoUsecase(deps);
+
+    await usecase({ token: 'tok', channelId: 'ch1', text: 'hello' });
+
+    expect(deps.cataasApiRepository.getRandomCatFile).toHaveBeenCalledWith(
+      undefined,
+      'hello',
+    );
+  });
+
+  test('passes both tags and text to getRandomCatFile', async () => {
+    const deps = makeDeps();
+    const usecase = makeSendCatPhotoUsecase(deps);
+
+    await usecase({ token: 'tok', channelId: 'ch1', tags: 'cute', text: 'meow' });
+
+    expect(deps.cataasApiRepository.getRandomCatFile).toHaveBeenCalledWith(
+      'cute',
+      'meow',
     );
   });
 
@@ -127,6 +153,7 @@ describe('makeSendCatPhotoUsecase', () => {
     expect(deps.cataasApiRepository.getRandomCatFile).toHaveBeenCalledTimes(2);
     expect(deps.cataasApiRepository.getRandomCatFile).toHaveBeenLastCalledWith(
       undefined,
+      undefined,
     );
     const call =
       deps.discordApiRepository.patchOriginalMessage.mock.calls[0][0];
@@ -151,6 +178,7 @@ describe('makeSendCatPhotoUsecase', () => {
 
     expect(deps.cataasApiRepository.getRandomCatFile).toHaveBeenLastCalledWith(
       'gif',
+      undefined,
     );
     const call =
       deps.discordApiRepository.patchOriginalMessage.mock.calls[0][0];
@@ -195,6 +223,7 @@ describe('makeSendCatPhotoUsecase', () => {
 
     expect(deps.cataasApiRepository.getRandomCatFile).toHaveBeenLastCalledWith(
       'gif',
+      undefined,
     );
     const call =
       deps.discordApiRepository.patchOriginalMessage.mock.calls[0][0];

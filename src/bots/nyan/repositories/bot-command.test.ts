@@ -63,6 +63,22 @@ describe('makeBotCommandRepository', () => {
       );
     });
 
+    test('includes text in payload when a text option is present on the subcommand', async () => {
+      const lambdaClient = makeLambdaClient();
+      const repo = makeBotCommandRepository({ lambdaClient, sendCatPhotoFunctionName: 'cat-fn' });
+      const interaction = makeInteraction({
+        data: { name: 'cat', options: [{ name: 'image', type: 1, options: [{ name: 'text', type: 3, value: 'hello' }] }] },
+      });
+
+      await repo.sendCatPhoto(interaction);
+
+      expect(lambdaClient.invoke).toHaveBeenCalledWith(
+        expect.objectContaining({
+          Payload: expect.objectContaining({ text: 'hello' }),
+        }),
+      );
+    });
+
     test('tags is undefined in payload when no tags option is present', async () => {
       const lambdaClient = makeLambdaClient();
       const repo = makeBotCommandRepository({ lambdaClient, sendCatPhotoFunctionName: 'cat-fn' });
@@ -111,6 +127,22 @@ describe('makeBotCommandRepository', () => {
             serverId: 'server-123',
             tags: 'gif',
           }),
+        }),
+      );
+    });
+
+    test('includes text in payload for gif command', async () => {
+      const lambdaClient = makeLambdaClient();
+      const repo = makeBotCommandRepository({ lambdaClient, sendCatPhotoFunctionName: 'cat-fn' });
+      const interaction = makeInteraction({
+        data: { name: 'cat', options: [{ name: 'gif', type: 1, options: [{ name: 'text', type: 3, value: 'meow' }] }] },
+      });
+
+      await repo.sendCatGif(interaction);
+
+      expect(lambdaClient.invoke).toHaveBeenCalledWith(
+        expect.objectContaining({
+          Payload: expect.objectContaining({ text: 'meow' }),
         }),
       );
     });

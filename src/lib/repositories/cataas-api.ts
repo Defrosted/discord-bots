@@ -16,11 +16,11 @@ export interface CatFile {
 }
 
 export interface CataasApiRepository {
-  getRandomCatFile: (tags?: string) => Promise<CatFile>;
+  getRandomCatFile: (tags?: string, text?: string) => Promise<CatFile>;
 }
 
 export const makeCataasApiRepository = (deps: Deps): CataasApiRepository => ({
-  getRandomCatFile: async (tags) => {
+  getRandomCatFile: async (tags, text) => {
     const path = tags ? `/cat/${encodeURIComponent(tags)}` : '/cat';
     try {
       const response = await deps.httpRequestClient.get<unknown>(
@@ -28,8 +28,9 @@ export const makeCataasApiRepository = (deps: Deps): CataasApiRepository => ({
         {},
       );
       const { id } = makeRecordValidator(cataasApiCatSchema)(response);
+      const textSegment = text ? `/says/${encodeURIComponent(text)}` : '';
       const buffer = await deps.httpRequestClient.get<ArrayBuffer>(
-        `${deps.cataasApiUrl}/cat/${id}`,
+        `${deps.cataasApiUrl}/cat/${id}${textSegment}`,
         { responseType: 'arraybuffer', headers: { Accept: 'image/*' } },
       );
       return { id, bytes: new Blob([buffer]) };

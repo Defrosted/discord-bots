@@ -29,6 +29,12 @@ const commands = [
             type: 3, // STRING
             required: false,
           },
+          {
+            name: 'text',
+            description: 'Text to overlay on the image',
+            type: 3, // STRING
+            required: false,
+          },
         ],
       },
       {
@@ -40,6 +46,12 @@ const commands = [
             name: 'tags',
             description:
               'Filter by tags separated by comma (e.g. "cute,funny")',
+            type: 3, // STRING
+            required: false,
+          },
+          {
+            name: 'text',
+            description: 'Text to overlay on the GIF',
             type: 3, // STRING
             required: false,
           },

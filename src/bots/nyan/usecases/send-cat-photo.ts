@@ -15,6 +15,7 @@ export interface SendCatPhotoUsecaseParams {
   channelId?: string;
   serverId?: string;
   tags?: string;
+  text?: string;
 }
 
 export type SendCatPhotoUsecase = (
@@ -47,7 +48,7 @@ export const makeSendCatPhotoUsecase =
       attempt: number,
     ): Promise<CatFile> => {
       try {
-        return await deps.cataasApiRepository.getRandomCatFile(tags);
+        return await deps.cataasApiRepository.getRandomCatFile(tags, params.text);
       } catch (error) {
         lastError = error;
         if (attempt >= MAX_FETCH_ATTEMPTS) throw error;

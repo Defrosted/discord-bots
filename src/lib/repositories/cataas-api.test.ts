@@ -63,6 +63,48 @@ describe('makeCataasApiRepository', () => {
       expect(result.bytes).toBeInstanceOf(Blob);
     });
 
+    test('appends /says/{text} to the binary fetch URL when text is provided', async () => {
+      const httpRequestClient = makeHttpRequestClient();
+      const repo = makeCataasApiRepository({ httpRequestClient, cataasApiUrl: CATAAS_API_URL });
+
+      await repo.getRandomCatFile(undefined, 'hello world');
+
+      expect(httpRequestClient.get).toHaveBeenCalledWith(
+        `${CATAAS_API_URL}/cat/abc123/says/hello%20world`,
+        expect.objectContaining({ responseType: 'arraybuffer' }),
+      );
+    });
+
+    test('does not append /says/ when text is not provided', async () => {
+      const httpRequestClient = makeHttpRequestClient();
+      const repo = makeCataasApiRepository({ httpRequestClient, cataasApiUrl: CATAAS_API_URL });
+
+      await repo.getRandomCatFile();
+
+      expect(httpRequestClient.get).toHaveBeenCalledWith(
+        `${CATAAS_API_URL}/cat/abc123`,
+        expect.objectContaining({ responseType: 'arraybuffer' }),
+      );
+    });
+
+    test('combines tags and text in the correct URL', async () => {
+      const httpRequestClient = makeHttpRequestClient();
+      const repo = makeCataasApiRepository({ httpRequestClient, cataasApiUrl: CATAAS_API_URL });
+
+      await repo.getRandomCatFile('cute', 'meow');
+
+      expect(httpRequestClient.get).toHaveBeenNthCalledWith(
+        1,
+        `${CATAAS_API_URL}/cat/cute?json=true`,
+        expect.any(Object),
+      );
+      expect(httpRequestClient.get).toHaveBeenNthCalledWith(
+        2,
+        `${CATAAS_API_URL}/cat/abc123/says/meow`,
+        expect.objectContaining({ responseType: 'arraybuffer' }),
+      );
+    });
+
     test('throws CatNotFoundForTagError when the API returns 404 and tags were provided', async () => {
       const httpRequestClient = makeHttpRequestClient();
       httpRequestClient.get.mockReset();
