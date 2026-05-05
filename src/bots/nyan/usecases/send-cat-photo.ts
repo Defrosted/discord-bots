@@ -1,6 +1,6 @@
 import { DiscordWebhookMessage } from '@lib/domain/discord-webhook-message';
 import { BotError, BotErrorType } from '@lib/errors/bot-error';
-import { CataasApiRepository } from '@lib/repositories/cataas-api';
+import { CatFile, CataasApiRepository } from '@lib/repositories/cataas-api';
 import { DiscordApiRepository } from '@lib/repositories/discord-api';
 import logger from '@lib/util/logger';
 import * as R from 'ramda';
@@ -28,6 +28,8 @@ const getFilename = (id: string, isGif: boolean) =>
 
 const getContentType = (isGif: boolean) => (isGif ? 'image/gif' : 'image/jpeg');
 
+const MAX_FETCH_ATTEMPTS = 5;
+
 export const makeSendCatPhotoUsecase =
   (deps: Deps): SendCatPhotoUsecase =>
   async (params) => {
@@ -35,25 +37,54 @@ export const makeSendCatPhotoUsecase =
 
     logger.info('Fetching cat file', { tags: params.tags });
     const gif = isGifTags(params.tags);
+    const fallbackTags = gif ? 'gif' : undefined;
+
+    let content = '';
+    let lastError: unknown;
+
+    const fetchCat = async (
+      tags: string | undefined,
+      attempt: number,
+    ): Promise<CatFile> => {
+      try {
+        return await deps.cataasApiRepository.getRandomCatFile(tags);
+      } catch (error) {
+        lastError = error;
+        if (attempt >= MAX_FETCH_ATTEMPTS) throw error;
+
+        if (
+          error instanceof BotError &&
+          error.errorType === BotErrorType.CatNotFoundForTagError
+        ) {
+          content =
+            "No cats found with provided tag, here's another one instead";
+        } else if (!content) {
+          content =
+            "Something went wrong fetching your cat, here's another one instead";
+        }
+
+        logger.warn(
+          `Failed to fetch cat file (attempt ${attempt}/${MAX_FETCH_ATTEMPTS}), retrying`,
+          { error },
+        );
+        return fetchCat(fallbackTags, attempt + 1);
+      }
+    };
+
     let message: DiscordWebhookMessage;
     try {
-      const { id, bytes } = await deps.cataasApiRepository.getRandomCatFile(params.tags);
+      const { id, bytes } = await fetchCat(params.tags, 1);
       const filename = getFilename(id, gif);
       message = new DiscordWebhookMessage({
-        content: '',
+        content,
         files: [{ filename, bytes, content_type: getContentType(gif) }],
       });
     } catch (error) {
-      if (error instanceof BotError && error.errorType === BotErrorType.CatNotFoundForTagError) {
-        const { id, bytes } = await deps.cataasApiRepository.getRandomCatFile();
-        const filename = getFilename(id, gif);
-        message = new DiscordWebhookMessage({
-          content: "No cats found with provided tag, here's another one instead",
-          files: [{ filename, bytes, content_type: getContentType(gif) }],
-        });
-      } else {
-        throw error;
-      }
+      logger.error('All fetch attempts failed', { error });
+      message = new DiscordWebhookMessage({
+        content:
+          "Despite trying my hardest I couldn't get you a cat right now. Please try again later!",
+      });
     }
 
     logger.info('Patching original message with cat file');

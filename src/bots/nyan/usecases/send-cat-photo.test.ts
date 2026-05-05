@@ -33,7 +33,9 @@ describe('makeSendCatPhotoUsecase', () => {
 
     await usecase({ token: 'tok', channelId: 'ch1', tags: 'cute' });
 
-    expect(deps.cataasApiRepository.getRandomCatFile).toHaveBeenCalledWith('cute');
+    expect(deps.cataasApiRepository.getRandomCatFile).toHaveBeenCalledWith(
+      'cute',
+    );
   });
 
   test('calls getRandomCatFile without tags when not provided', async () => {
@@ -42,7 +44,9 @@ describe('makeSendCatPhotoUsecase', () => {
 
     await usecase({ token: 'tok', channelId: 'ch1' });
 
-    expect(deps.cataasApiRepository.getRandomCatFile).toHaveBeenCalledWith(undefined);
+    expect(deps.cataasApiRepository.getRandomCatFile).toHaveBeenCalledWith(
+      undefined,
+    );
   });
 
   test('patches the original Discord message', async () => {
@@ -51,7 +55,9 @@ describe('makeSendCatPhotoUsecase', () => {
 
     await usecase({ token: 'tok123', channelId: 'ch1' });
 
-    expect(deps.discordApiRepository.patchOriginalMessage).toHaveBeenCalledTimes(1);
+    expect(
+      deps.discordApiRepository.patchOriginalMessage,
+    ).toHaveBeenCalledTimes(1);
     expect(deps.discordApiRepository.patchOriginalMessage).toHaveBeenCalledWith(
       expect.objectContaining({ token: 'tok123' }),
     );
@@ -63,7 +69,8 @@ describe('makeSendCatPhotoUsecase', () => {
 
     await usecase({ token: 'tok', channelId: 'ch1' });
 
-    const call = deps.discordApiRepository.patchOriginalMessage.mock.calls[0][0];
+    const call =
+      deps.discordApiRepository.patchOriginalMessage.mock.calls[0][0];
     expect(call.message).toBeInstanceOf(DiscordWebhookMessage);
     expect(call.message.files).toHaveLength(1);
     expect(call.message.files[0].bytes).toBe(CAT_BLOB);
@@ -75,7 +82,8 @@ describe('makeSendCatPhotoUsecase', () => {
 
     await usecase({ token: 'tok', channelId: 'ch1', tags: 'cute' });
 
-    const call = deps.discordApiRepository.patchOriginalMessage.mock.calls[0][0];
+    const call =
+      deps.discordApiRepository.patchOriginalMessage.mock.calls[0][0];
     expect(call.message.files[0].filename).toBe(`${CAT_ID}.jpg`);
     expect(call.message.files[0].content_type).toBe('image/jpeg');
   });
@@ -86,7 +94,8 @@ describe('makeSendCatPhotoUsecase', () => {
 
     await usecase({ token: 'tok', channelId: 'ch1', tags: 'gif,orange' });
 
-    const call = deps.discordApiRepository.patchOriginalMessage.mock.calls[0][0];
+    const call =
+      deps.discordApiRepository.patchOriginalMessage.mock.calls[0][0];
     expect(call.message.files[0].filename).toBe(`${CAT_ID}.gif`);
     expect(call.message.files[0].content_type).toBe('image/gif');
   });
@@ -97,11 +106,16 @@ describe('makeSendCatPhotoUsecase', () => {
 
     await usecase({ token: 'tok', channelId: 'ch1' });
 
-    expect(deps.discordApiRepository.postMessageToChannel).not.toHaveBeenCalled();
+    expect(
+      deps.discordApiRepository.postMessageToChannel,
+    ).not.toHaveBeenCalled();
   });
 
   test('fetches a random cat and sends fallback message with attachment when no cat found for tag', async () => {
-    const FALLBACK_FILE = { id: 'fallback', bytes: new Blob(['fallback-bytes']) };
+    const FALLBACK_FILE = {
+      id: 'fallback',
+      bytes: new Blob(['fallback-bytes']),
+    };
     const deps = makeDeps();
     deps.cataasApiRepository.getRandomCatFile
       .mockRejectedValueOnce(new BotError(BotErrorType.CatNotFoundForTagError))
@@ -111,21 +125,138 @@ describe('makeSendCatPhotoUsecase', () => {
     await usecase({ token: 'tok', channelId: 'ch1', tags: 'nonexistent' });
 
     expect(deps.cataasApiRepository.getRandomCatFile).toHaveBeenCalledTimes(2);
-    expect(deps.cataasApiRepository.getRandomCatFile).toHaveBeenLastCalledWith();
-    const call = deps.discordApiRepository.patchOriginalMessage.mock.calls[0][0];
-    expect(call.message.content).toContain("No cats found with provided tag, here's another one instead");
+    expect(deps.cataasApiRepository.getRandomCatFile).toHaveBeenLastCalledWith(
+      undefined,
+    );
+    const call =
+      deps.discordApiRepository.patchOriginalMessage.mock.calls[0][0];
+    expect(call.message.content).toContain(
+      "No cats found with provided tag, here's another one instead",
+    );
     expect(call.message.files[0].bytes).toBe(FALLBACK_FILE.bytes);
   });
 
-  test('rethrows non-tag-not-found errors', async () => {
+  test('preserves gif mode in fallback when tag not found', async () => {
+    const FALLBACK_FILE = {
+      id: 'fallback',
+      bytes: new Blob(['fallback-bytes']),
+    };
+    const deps = makeDeps();
+    deps.cataasApiRepository.getRandomCatFile
+      .mockRejectedValueOnce(new BotError(BotErrorType.CatNotFoundForTagError))
+      .mockResolvedValueOnce(FALLBACK_FILE);
+    const usecase = makeSendCatPhotoUsecase(deps);
+
+    await usecase({ token: 'tok', channelId: 'ch1', tags: 'gif,nonexistent' });
+
+    expect(deps.cataasApiRepository.getRandomCatFile).toHaveBeenLastCalledWith(
+      'gif',
+    );
+    const call =
+      deps.discordApiRepository.patchOriginalMessage.mock.calls[0][0];
+    expect(call.message.files[0].filename).toBe('fallback.gif');
+    expect(call.message.files[0].content_type).toBe('image/gif');
+  });
+
+  test('fetches fallback cat on generic error with error message', async () => {
+    const FALLBACK_FILE = {
+      id: 'fallback',
+      bytes: new Blob(['fallback-bytes']),
+    };
+    const deps = makeDeps();
+    deps.cataasApiRepository.getRandomCatFile
+      .mockRejectedValueOnce(new BotError(BotErrorType.InfrastructureError))
+      .mockResolvedValueOnce(FALLBACK_FILE);
+    const usecase = makeSendCatPhotoUsecase(deps);
+
+    await usecase({ token: 'tok', channelId: 'ch1' });
+
+    expect(deps.cataasApiRepository.getRandomCatFile).toHaveBeenCalledTimes(2);
+    const call =
+      deps.discordApiRepository.patchOriginalMessage.mock.calls[0][0];
+    expect(call.message.content).toContain(
+      "Something went wrong fetching your cat, here's another one instead",
+    );
+    expect(call.message.files[0].bytes).toBe(FALLBACK_FILE.bytes);
+  });
+
+  test('preserves gif mode in fallback on generic error', async () => {
+    const FALLBACK_FILE = {
+      id: 'fallback',
+      bytes: new Blob(['fallback-bytes']),
+    };
+    const deps = makeDeps();
+    deps.cataasApiRepository.getRandomCatFile
+      .mockRejectedValueOnce(new BotError(BotErrorType.InfrastructureError))
+      .mockResolvedValueOnce(FALLBACK_FILE);
+    const usecase = makeSendCatPhotoUsecase(deps);
+
+    await usecase({ token: 'tok', channelId: 'ch1', tags: 'gif' });
+
+    expect(deps.cataasApiRepository.getRandomCatFile).toHaveBeenLastCalledWith(
+      'gif',
+    );
+    const call =
+      deps.discordApiRepository.patchOriginalMessage.mock.calls[0][0];
+    expect(call.message.files[0].filename).toBe('fallback.gif');
+    expect(call.message.files[0].content_type).toBe('image/gif');
+  });
+
+  test('retries multiple times before succeeding', async () => {
+    const FALLBACK_FILE = {
+      id: 'fallback',
+      bytes: new Blob(['fallback-bytes']),
+    };
+    const deps = makeDeps();
+    deps.cataasApiRepository.getRandomCatFile
+      .mockRejectedValueOnce(new BotError(BotErrorType.InfrastructureError))
+      .mockRejectedValueOnce(new BotError(BotErrorType.InfrastructureError))
+      .mockRejectedValueOnce(new BotError(BotErrorType.InfrastructureError))
+      .mockResolvedValueOnce(FALLBACK_FILE);
+    const usecase = makeSendCatPhotoUsecase(deps);
+
+    await usecase({ token: 'tok', channelId: 'ch1' });
+
+    expect(deps.cataasApiRepository.getRandomCatFile).toHaveBeenCalledTimes(4);
+    const call =
+      deps.discordApiRepository.patchOriginalMessage.mock.calls[0][0];
+    expect(call.message.files[0].bytes).toBe(FALLBACK_FILE.bytes);
+  });
+
+  test('sends error message to Discord after all 5 attempts fail', async () => {
     const deps = makeDeps();
     deps.cataasApiRepository.getRandomCatFile.mockRejectedValue(
       new BotError(BotErrorType.InfrastructureError),
     );
     const usecase = makeSendCatPhotoUsecase(deps);
 
-    await expect(usecase({ token: 'tok', channelId: 'ch1' })).rejects.toMatchObject({
-      errorType: BotErrorType.InfrastructureError,
-    });
+    await usecase({ token: 'tok', channelId: 'ch1' });
+
+    expect(deps.cataasApiRepository.getRandomCatFile).toHaveBeenCalledTimes(5);
+    const call =
+      deps.discordApiRepository.patchOriginalMessage.mock.calls[0][0];
+    expect(call.message.content).toMatchInlineSnapshot(`"Despite trying my hardest I couldn't get you a cat right now. Please try again later!"`);
+    expect(call.message.files).toBeUndefined();
+  });
+
+  test('sets tag-not-found message even when later retries also fail with generic errors', async () => {
+    const FALLBACK_FILE = {
+      id: 'fallback',
+      bytes: new Blob(['fallback-bytes']),
+    };
+    const deps = makeDeps();
+    deps.cataasApiRepository.getRandomCatFile
+      .mockRejectedValueOnce(new BotError(BotErrorType.CatNotFoundForTagError))
+      .mockRejectedValueOnce(new BotError(BotErrorType.InfrastructureError))
+      .mockResolvedValueOnce(FALLBACK_FILE);
+    const usecase = makeSendCatPhotoUsecase(deps);
+
+    await usecase({ token: 'tok', channelId: 'ch1', tags: 'nonexistent' });
+
+    const call =
+      deps.discordApiRepository.patchOriginalMessage.mock.calls[0][0];
+    expect(call.message.content).toContain(
+      "No cats found with provided tag, here's another one instead",
+    );
   });
 });
