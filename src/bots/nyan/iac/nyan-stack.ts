@@ -65,7 +65,7 @@ export class NyanStack extends Stack {
         memorySize: 512,
         entry: path.join(__dirname, '../entrypoints/events/send-cat-photo.ts'),
         description: new Date().toISOString(),
-        timeout: Duration.seconds(10),
+        timeout: Duration.seconds(30),
       },
     );
 
